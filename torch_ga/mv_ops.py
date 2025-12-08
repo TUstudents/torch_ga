@@ -43,6 +43,8 @@ def mv_multiply(a_blade_values: torch.Tensor, b_blade_values: torch.Tensor, cayl
     
     # print(f"same opeartions? x.shape={x.shape},x1.shape={x1.shape}")
     
+    # Ensure cayley is on the same device as the input tensors
+    cayley = cayley.to(device=a_blade_values.device, dtype=a_blade_values.dtype)
     x = torch.einsum("...i,...j,ijk->...k", a_blade_values, b_blade_values, cayley)
     
     # # # einsum
@@ -114,6 +116,8 @@ def f_mv_conv1d(input, weight, cayley: torch.Tensor, bias=None, stride=1, paddin
     # ci,ks,bi,L * co,ci,ks,bj * bi,bj,bk -> co,ks,L,bk  
     # a,b,c,d * e,a,b,f * c,f,g -> e,b,d,g
     # ...abcd, eabf, cfg -> ...ebdg  
+    # Move cayley to the correct device
+    cayley = cayley.to(device=input.device, dtype=input.dtype)
     x = torch.einsum("...abcd, eabf, cfg -> ...ebdg", input_unfold, weight, cayley)
     # x = x.view(batch,out_channels,-1,num_blades) + (bias.view(1,out_channels,1,num_blades) if bias else 0) 
     x = x.reshape(batch,out_channels,-1,num_blades) + (bias.reshape(1,out_channels,1,num_blades) if bias else 0) 
@@ -187,6 +191,8 @@ def mv_conv1d(a_blade_values: torch.Tensor, k_blade_values: torch.Tensor, cayley
     # TODO: Optimize this to not use einsum (since it's slow with ellipses)
     # a_...p,k,ci,bi; k_k,ci,co,bk; c_bi,bk,bo -> y_...p,co,bo
     #   ...a b c  d ,   e c  f  g ,   d  g  h  ->   ...a f  h
+    # Move cayley to the correct device
+    cayley = cayley.to(device=a_slices.device, dtype=a_slices.dtype)
     x = torch.einsum("...abcd,bcfg,dgh->...afh", a_slices, k_blade_values, cayley)
     return x
 

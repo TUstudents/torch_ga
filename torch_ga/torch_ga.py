@@ -525,7 +525,7 @@ class GeometricAlgebra:
             is_scalar = True
         else:
             _shape_final = list(_shape[:-1]) + [self.num_blades] 
-        b = torch.zeros(_shape_final)
+        b = torch.zeros(_shape_final, device=tensor.device, dtype=tensor.dtype)
 
         if False:
             print(f"blade_indices.shape={blade_indices.shape}")
