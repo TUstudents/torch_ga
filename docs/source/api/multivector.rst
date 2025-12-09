@@ -9,7 +9,7 @@ The :class:`~torch_ga.MultiVector` class provides an object-oriented interface f
    :members:
    :undoc-members:
    :show-inheritance:
-   :special-members: __init__, __add__, __sub__, __mul__, __truediv__
+   :special-members: __init__, __add__, __sub__, __mul__, __truediv__, __xor__, __or__, __invert__
 
 Overview
 --------
@@ -42,35 +42,47 @@ The MultiVector class supports intuitive operator overloading:
 * ``~a`` - Reversion
 * ``a | b`` - Inner product
 * ``a ^ b`` - Exterior (wedge) product
+* ``a << b`` - Left contraction
+* ``a >> b`` - Right contraction
+* ``a & b`` - Regressive product
 
-Properties
-----------
+Key Properties
+--------------
 
-.. autoproperty:: MultiVector.tensor
-.. autoproperty:: MultiVector.algebra
-.. autoproperty:: MultiVector.device
-.. autoproperty:: MultiVector.dtype
-.. autoproperty:: MultiVector.shape
+* ``tensor`` - The underlying PyTorch tensor holding blade values
+* ``algebra`` - The GeometricAlgebra instance this multivector belongs to
+* ``shape`` - Shape of the multivector tensor
+* ``batch_shape`` - Shape of all axes except the last (blade) axis
 
-Methods
--------
+Key Methods
+-----------
 
-Products
-^^^^^^^^
+**Grade Operations**
 
-.. automethod:: MultiVector.geom_prod
-.. automethod:: MultiVector.inner_prod
-.. automethod:: MultiVector.outer_prod
+* ``grade(g)`` - Extract components of a specific grade
+* ``scalar`` - Get scalar (grade-0) part
+* ``vector`` - Get vector (grade-1) part
+* ``bivector`` - Get bivector (grade-2) part
 
-Transformations
-^^^^^^^^^^^^^^^
+**Transformations**
 
-.. automethod:: MultiVector.dual
-.. automethod:: MultiVector.reversion
-.. automethod:: MultiVector.inverse
+* ``dual()`` - Compute the dual
+* ``reversion()`` - Compute the reversion (tilde operator)
+* ``inverse()`` - Compute the multiplicative inverse
+* ``conjugation()`` - Clifford conjugation
+* ``grade_automorphism()`` - Grade automorphism
 
-Grade Operations
-^^^^^^^^^^^^^^^^
+**Norms**
 
-.. automethod:: MultiVector.grade
+* ``norm()`` - Compute the norm
+* ``normalized()`` - Return unit multivector
 
+**Advanced**
+
+* ``exp()`` - Exponential of multivector
+* ``approx_exp(order)`` - Approximate exponential via Taylor series
+* ``approx_log(order)`` - Approximate logarithm via Taylor series
+* ``sandwitch(other)`` - Sandwich product: other * self * ~other
+* ``proj(other)`` - Project onto another multivector
+* ``meet(other)`` - Meet (intersection) 
+* ``join(other)`` - Join (union)

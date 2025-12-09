@@ -29,47 +29,39 @@ A geometric algebra is defined by its metric signature:
    # Spacetime Algebra (STA)
    sta = GeometricAlgebra([1, -1, -1, -1])
 
-Key Methods
------------
+Key Capabilities
+----------------
 
-Tensor Creation
-^^^^^^^^^^^^^^^
+**Tensor Creation**
 
-.. automethod:: GeometricAlgebra.from_tensor
-.. automethod:: GeometricAlgebra.from_tensor_with_kind
-.. automethod:: GeometricAlgebra.from_scalar
+* ``from_tensor(tensor)`` - Create a multivector from tensor values
+* ``from_tensor_with_kind(tensor, kind)`` - Create from tensor with specified blade kind  
+* ``from_scalar(scalar)`` - Create a scalar multivector
+* ``e(name)`` / ``emv(name)`` - Get basis blade by name (as tensor or MultiVector)
 
-Basis Blades
-^^^^^^^^^^^^
+**Products**
 
-.. automethod:: GeometricAlgebra.e
+* ``geom_prod(a, b)`` - Geometric (Clifford) product
+* ``ext_prod(a, b)`` - Exterior (wedge) product
+* ``inner_prod(a, b)`` - Inner (dot) product
+* ``reg_prod(a, b)`` - Regressive product
 
-Products
-^^^^^^^^
+**Transformations**
 
-.. automethod:: GeometricAlgebra.geom_prod
-.. automethod:: GeometricAlgebra.ext_prod
-.. automethod:: GeometricAlgebra.inner_prod
+* ``dual(a)`` - Hodge dual
+* ``reversion(a)`` - Reversion (grade-based sign flip)
+* ``grade_automorphism(a)`` - Grade involution
+* ``conjugation(a)`` - Clifford conjugation
 
-Transformations
-^^^^^^^^^^^^^^^
+**Inversion**
 
-.. automethod:: GeometricAlgebra.dual
-.. automethod:: GeometricAlgebra.reversion
-.. automethod:: GeometricAlgebra.grade_automorphism
-.. automethod:: GeometricAlgebra.conjugation
+* ``inverse(a)`` - Multiplicative inverse
+* ``simple_inverse(a)`` - Simple inverse for blades
 
-Inversion
-^^^^^^^^^
+**Properties**
 
-.. automethod:: GeometricAlgebra.inverse
-.. automethod:: GeometricAlgebra.simple_inverse
-
-Properties
-----------
-
-.. autoproperty:: GeometricAlgebra.metric
-.. autoproperty:: GeometricAlgebra.cayley
-.. autoproperty:: GeometricAlgebra.blades
-.. autoproperty:: GeometricAlgebra.num_blades
-.. autoproperty:: GeometricAlgebra.blade_degrees
+* ``metric`` - The metric signature
+* ``blades`` - List of blade names
+* ``num_blades`` - Total number of blades (2^n)
+* ``blade_degrees`` - Grades of each blade
+* ``cayley`` - Cayley multiplication tables

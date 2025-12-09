@@ -21,8 +21,6 @@ The torch_ga library is organized into the following modules:
 * :doc:`geometric_algebra` - Main GeometricAlgebra class for algebra operations
 * :doc:`multivector` - MultiVector class for representing GA elements
 * :doc:`layers` - Neural network layers with GA operations
-* :doc:`operations` - Low-level GA operations
-* :doc:`blades` - Blade manipulation and utilities
 
 Operations
 ----------
