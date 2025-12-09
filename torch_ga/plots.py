@@ -1,8 +1,5 @@
 
-"""
-Utility functions to plot lines, planes and points in 3D. they assume G(0,1,1,1)
-
-"""
+"""Utility functions to plot lines, planes and points in 3D for G(0,1,1,1)."""
 
 import numpy as np
 # import meshplot as mp
@@ -17,11 +14,28 @@ from .mv import MultiVector
 import torch
 
 def t2np(x):
+    """Convert torch tensor to numpy array.
+    
+    Args:
+        x: Input tensor or array.
+    
+    Returns:
+        Numpy array.
+    """
     if isinstance(x,torch.Tensor):
         return x.detach().cpu().numpy()
     return x
 
 def plot_line_pga(ga,tensor,ax=None,alpha = 1.0, **kargs):
+    """Plot PGA lines in 2D or 3D.
+    
+    Args:
+        ga: GeometricAlgebra instance.
+        tensor: Line tensor in PGA representation.
+        ax: Optional matplotlib axis.
+        alpha: Line length parameter.
+        **kargs: Additional plotting arguments.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     if len(tensor.shape)==1: tensor=tensor.unsqueeze(0)
     if ax is None:
@@ -41,6 +55,14 @@ def plot_line_pga(ga,tensor,ax=None,alpha = 1.0, **kargs):
             ax.text(*xy,f"{ki}")        
 
 def plot_plane_pga(ga,tensor,ax=None, **kargs):
+    """Plot PGA planes in 2D or 3D.
+    
+    Args:
+        ga: GeometricAlgebra instance.
+        tensor: Plane tensor in PGA representation.
+        ax: Optional matplotlib axis.
+        **kargs: Additional plotting arguments.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     if len(tensor.shape)==1: tensor=tensor.unsqueeze(0)
     if ax is None:
@@ -63,6 +85,14 @@ def plot_plane_pga(ga,tensor,ax=None, **kargs):
     #     ax.text(*xy,f"{ki}")              
 
 def plot_point_pga(ga,tensor, ax=None, **kargs):
+    """Plot PGA points in 2D or 3D.
+    
+    Args:
+        ga: GeometricAlgebra instance.
+        tensor: Point tensor in PGA representation.
+        ax: Optional matplotlib axis.
+        **kargs: Additional plotting arguments.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     if len(tensor.shape)==1: tensor=tensor.unsqueeze(0)
     if ax is None:
@@ -81,6 +111,14 @@ def plot_point_pga(ga,tensor, ax=None, **kargs):
 # CGA
 
 def plot_point_cga(ga,tensor, ax=None, **kargs):
+    """Plot CGA points in 2D or 3D.
+    
+    Args:
+        ga: GeometricAlgebra instance.
+        tensor: Point tensor in CGA representation.
+        ax: Optional matplotlib axis.
+        **kargs: Additional plotting arguments.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     if len(tensor.shape)==1: tensor=tensor.unsqueeze(0)
     if ax is None:
@@ -98,6 +136,15 @@ def plot_point_cga(ga,tensor, ax=None, **kargs):
 
 
 def plot_line_cga(ga,tensor,ax=None,alpha = 1.0, **kargs):
+    """Plot CGA lines in 2D or 3D.
+    
+    Args:
+        ga: GeometricAlgebra instance.
+        tensor: Line tensor in CGA representation.
+        ax: Optional matplotlib axis.
+        alpha: Line length parameter.
+        **kargs: Additional plotting arguments.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     if len(tensor.shape)==1: tensor=tensor.unsqueeze(0)
     if ax is None:
@@ -117,17 +164,46 @@ def plot_line_cga(ga,tensor,ax=None,alpha = 1.0, **kargs):
             ax.text(*xy,f"{ki}") 
 
 # eculidean
-def plot_plane_xyz(d,n,ax,xx,yy, **kargs): 
+def plot_plane_xyz(d,n,ax,xx,yy, **kargs):
+    """Plot plane in 3D Euclidean space.
+    
+    Args:
+        d: Distance parameter.
+        n: Normal vector.
+        ax: Matplotlib 3D axis.
+        xx: X meshgrid.
+        yy: Y meshgrid.
+        **kargs: Additional plotting arguments.
+    """ 
     xn,yn,zn = n
     z = (d-xx*xn-yy*yn)/zn
     ax.plot_surface(xx, yy, z, alpha=0.2,**kargs)
-def plot_plane_xy(d,n,ax,xx, **kargs): 
+def plot_plane_xy(d,n,ax,xx, **kargs):
+    """Plot plane in 2D Euclidean space.
+    
+    Args:
+        d: Distance parameter.
+        n: Normal vector.
+        ax: Matplotlib 2D axis.
+        xx: X coordinates.
+        **kargs: Additional plotting arguments.
+    """ 
     xn,zn = n
     # z = (d-xx*xn)/zn
     z = (d-xx*xn)/zn
     ax.plot(z, xx, alpha=0.2,**kargs)
 
-def plot_line_xyz(s,d,ax,dim, alpha = 1.0, **kargs):    
+def plot_line_xyz(s,d,ax,dim, alpha = 1.0, **kargs):
+    """Plot line in Euclidean space.
+    
+    Args:
+        s: Starting point.
+        d: Direction vector.
+        ax: Matplotlib axis.
+        dim: Dimensionality (2 or 3).
+        alpha: Line length parameter.
+        **kargs: Additional plotting arguments.
+    """    
     # ic(dim,s,d) 
     _line = [(s[_]-alpha*d[_],s[_]+alpha*d[_]) for _ in range(dim)]
     ax.plot(*_line,**kargs)
@@ -138,23 +214,52 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # Function to convert Plücker coordinates to direction vector and point on line
 def plucker_to_line(p,q):
-  d = np.cross(p, q)  # Direction vector
-#   ic(d.shape,p.shape)
-  v = (p.T / d[...,-1]).T  # Point on the line (assuming d[3] != 0)
-#   v = ic(p.T / q[...,0]).T  # Point on the line (assuming d[3] != 0)
-#   v = ic(p / abs(d).max(-1))  # Point on the line (assuming d[3] != 0)
-# v = ic(p / d[...,-1])  # Point on the line (assuming d[3] != 0)
-#   v = ic(p)  # Point on the line (assuming d[3] != 0)
-  return d, v
+    """Convert Plucker coordinates to direction vector and point on line.
+    
+    Args:
+        p: First Plucker coordinate.
+        q: Second Plucker coordinate.
+    
+    Returns:
+        Tuple of (direction_vector, point_on_line).
+    """
+    d = np.cross(p, q)  # Direction vector
+    # ic(d.shape,p.shape)
+    v = (p.T / d[...,-1]).T  # Point on the line (assuming d[3] != 0)
+    # v = ic(p.T / q[...,0]).T  # Point on the line (assuming d[3] != 0)
+    # v = ic(p / abs(d).max(-1))  # Point on the line (assuming d[3] != 0)
+    # v = ic(p / d[...,-1])  # Point on the line (assuming d[3] != 0)
+    # v = ic(p)  # Point on the line (assuming d[3] != 0)
+    return d, v
 
 def build_lines(d,v,alpha):
+    """Build line coordinates for plotting.
+    
+    Args:
+        d: Direction vector.
+        v: Point on line.
+        alpha: Length parameter.
+    
+    Returns:
+        Tuple of (line_x, line_y, line_z) coordinates.
+    """
     t = alpha*np.linspace(-1, 1, 100)  # Range for parameterizing the line
     line_x = v[...,0] + t * d[...,0]
     line_y = v[...,1] + t * d[...,1]
     line_z = v[...,2] + t * d[...,2]
     return line_x, line_y, line_z 
 
-def plot_line_xyz_(s,d,ax,dim, alpha = 1.0, **kargs):   
+def plot_line_xyz_(s,d,ax,dim, alpha = 1.0, **kargs):
+    """Plot line in XYZ space using Plucker coordinates.
+    
+    Args:
+        s: Starting point.
+        d: Direction vector.
+        ax: Matplotlib 3D axis.
+        dim: Dimensionality.
+        alpha: Line length parameter.
+        **kargs: Additional plotting arguments.
+    """   
     d, v = plucker_to_line(-s,-d)  
     line_x, line_y, line_z = build_lines(d,v,alpha)
     # _line = [(s[_]-alpha*d[_],s[_]+alpha*d[_]) for _ in range(3)]

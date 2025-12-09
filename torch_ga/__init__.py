@@ -1,7 +1,6 @@
-"""
-PyTorch Geometric Algebra
+"""PyTorch Geometric Algebra.
 
-An python library for Geometric Algebra in Pytorch
+A Python library for Geometric Algebra in PyTorch.
 """
 
 __author__ = 'Francesco Alesiani'

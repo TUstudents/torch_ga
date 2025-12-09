@@ -12,16 +12,33 @@ from .blades import BladeKind
 from .torch_ga import GeometricAlgebra
 
 class GeometricAlgebraLayer(nn.Module):
+    """Base class for geometric algebra neural network layers."""
+    
     def __init__(self, algebra: GeometricAlgebra, **kwargs):
+        """Initialize layer with geometric algebra instance.
+        
+        Args:
+            algebra: GeometricAlgebra instance to use for operations.
+            **kwargs: Additional arguments passed to parent class.
+        """
         self.algebra = algebra
         self.built = False
         super().__init__(**kwargs)
     
     def build(self):
+        """Build layer (must be implemented by subclasses)."""
         assert(False), "why me?"
 
     @classmethod
     def from_config(cls, config):
+        """Create layer instance from configuration dictionary.
+        
+        Args:
+            config: Configuration dict containing algebra or metric.
+        
+        Returns:
+            Layer instance.
+        """
         # Create algebra if necessary (should only occur once, assumes that
         # config is actually mutable).
         if "algebra" not in config:
@@ -31,6 +48,11 @@ class GeometricAlgebraLayer(nn.Module):
         return cls(**config)
 
     def get_config(self):
+        """Get layer configuration for serialization.
+        
+        Returns:
+            Dict with algebra metric for reconstruction.
+        """
         # Store metric of the algebra. In from_config() we will recreate the
         # algebra from the metric.
         config = super().get_config()
@@ -42,17 +64,22 @@ class GeometricAlgebraLayer(nn.Module):
 
 # @register_keras_serializable(package="TFGA")
 class TensorToGeometric(GeometricAlgebraLayer):
-    """Layer for converting tensors with given blade indices to
-    geometric algebra tensors.
+    """Layer for converting tensors with given blade indices to geometric algebra tensors.
 
     Args:
-        algebra: GeometricAlgebra instance to use
-        blade_indices: blade indices to interpret the last axis of the
-        input tensor as
+        algebra: GeometricAlgebra instance to use.
+        blade_indices: Blade indices to interpret the last axis of input tensor as.
     """
 
     def __init__(self, algebra: GeometricAlgebra, blade_indices: List[int],
                  **kwargs):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            blade_indices: Blade indices for conversion.
+            **kwargs: Additional arguments.
+        """
         super().__init__(algebra=algebra, **kwargs)
 
         self.blade_indices = torch.tensor(blade_indices, dtype=torch.int64)
@@ -60,13 +87,20 @@ class TensorToGeometric(GeometricAlgebraLayer):
         self.built = False
 
     def compute_output_shape(self, input_shape):
+        """Compute output shape (full GA tensor with all blades)."""
         return [*input_shape[:-1], self.algebra.num_blades]
 
     def forward(self, inputs):
+        """Convert input tensor to geometric algebra tensor."""
         if not self.build: self.build(inputs.shape)
         return self.algebra.from_tensor(inputs, blade_indices=self.blade_indices)
-    def build(self,input_shape):  self.built = True
+    
+    def build(self, input_shape):
+        """Build the layer."""
+        self.built = True
+    
     def get_config(self):
+        """Get configuration."""
         config = super().get_config()
         config.update({
             "blade_indices": self.blade_indices.numpy()
@@ -76,31 +110,42 @@ class TensorToGeometric(GeometricAlgebraLayer):
 
 # @register_keras_serializable(package="TFGA")
 class TensorWithKindToGeometric(GeometricAlgebraLayer):
-    """Layer for converting tensors with given blade kind to
-    geometric algebra tensors.
+    """Layer for converting tensors with given blade kind to geometric algebra tensors.
 
     Args:
-        algebra: GeometricAlgebra instance to use
-        kind: blade kind indices to interpret the last axis of the
-        input tensor as
+        algebra: GeometricAlgebra instance to use.
+        kind: Blade kind to interpret the last axis of input tensor as.
     """
 
     def __init__(self, algebra: GeometricAlgebra, kind: BladeKind,
                  **kwargs):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            kind: Blade kind for conversion.
+            **kwargs: Additional arguments.
+        """
         super().__init__(algebra=algebra, **kwargs)
         self.kind = kind
         self.built = False
 
     def compute_output_shape(self, input_shape):
+        """Compute output shape based on blade kind."""
         return [*input_shape[:-1], self.algebra.get_kind_blade_indices(self.kind).shape[0]]
 
-    def build(self,input_shape): self.built = True
+    def build(self, input_shape):
+        """Build the layer."""
+        self.built = True
+    
     def forward(self, inputs):
+        """Convert input tensor to geometric algebra tensor using blade kind."""
         if not self.build: self.build(inputs.shape)
 
         return self.algebra.from_tensor_with_kind(inputs, kind=self.kind)
 
     def get_config(self):
+        """Get configuration."""
         config = super().get_config()
         config.update({
             "kind": self.kind
@@ -113,28 +158,41 @@ class GeometricToTensor(GeometricAlgebraLayer):
     """Layer for extracting given blades from geometric algebra tensors.
 
     Args:
-        algebra: GeometricAlgebra instance to use
-        blade_indices: blade indices to extract
+        algebra: GeometricAlgebra instance to use.
+        blade_indices: Blade indices to extract.
     """
 
     def __init__(self, algebra: GeometricAlgebra, blade_indices: List[int],
                  **kwargs):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            blade_indices: Blade indices to extract.
+            **kwargs: Additional arguments.
+        """
         super().__init__(algebra=algebra, **kwargs)
         self.blade_indices = torch.tensor(blade_indices).to(dtype=torch.int64)
         # self.blade_indices = blade_indices.to(dtype=torch.int64) 
         self.built = False
 
     def compute_output_shape(self, input_shape):
+        """Compute output shape."""
         return [*input_shape[:-1], self.blade_indices.shape[0]]
-    def build(self,input_shape): self.built = True
+    
+    def build(self, input_shape):
+        """Build the layer."""
+        self.built = True
 
     def forward(self, inputs):
+        """Extract specified blade components from geometric algebra tensor."""
         if not self.build: self.build(inputs.shape)
         # return torch.select(inputs, self.blade_indices, axis=-1)
         x = inputs[...,self.blade_indices]
         return x
 
     def get_config(self):
+        """Get configuration."""
         config = super().get_config()
         config.update({
             "blade_indices": self.blade_indices.numpy()
@@ -147,12 +205,19 @@ class GeometricToTensorWithKind(GeometricToTensor):
     """Layer for extracting blades of a kind from geometric algebra tensors.
 
     Args:
-        algebra: GeometricAlgebra instance to use
-        kind: blade indices of kind to extract
+        algebra: GeometricAlgebra instance to use.
+        kind: Blade kind to extract.
     """
 
     def __init__(self, algebra: GeometricAlgebra, kind: BladeKind,
                  **kwargs):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            kind: Blade kind to extract.
+            **kwargs: Additional arguments.
+        """
         blade_indices = algebra.get_kind_blade_indices(kind)
         super().__init__(algebra=algebra, blade_indices=blade_indices,
                          **kwargs)
@@ -185,14 +250,16 @@ initializers = {
 
 # @register_keras_serializable(package="TFGA")
 class GeometricProductDense(GeometricAlgebraLayer):
-    """Analagous to Keras' Dense layer but using multivector-valued matrices
+    """Dense layer using multivector matrices and geometric product.
+    
+    Analagous to Keras' Dense layer but using multivector-valued matrices
     instead of scalar ones and geometric multiplication instead of standard
     multiplication.
 
     Args:
-        algebra: GeometricAlgebra instance to use for the parameters
-        blade_indices_kernel: Blade indices to use for the kernel parameter
-        blade_indices_bias: Blade indices to use for the bias parameter (if used)
+        algebra: GeometricAlgebra instance to use for the parameters.
+        blade_indices_kernel: Blade indices to use for the kernel parameter.
+        blade_indices_bias: Blade indices to use for the bias parameter (if used).
     """
 
     def __init__(
@@ -205,6 +272,17 @@ class GeometricProductDense(GeometricAlgebraLayer):
         use_bias=True,
         **kwargs
     ):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            units: Number of output units.
+            blade_indices_kernel: Blade indices for kernel.
+            blade_indices_bias: Blade indices for bias.
+            activation: Activation function name.
+            use_bias: Whether to use bias.
+            **kwargs: Additional arguments.
+        """
         super().__init__(algebra=algebra, **kwargs)
 
         self.units = units
@@ -219,6 +297,7 @@ class GeometricProductDense(GeometricAlgebraLayer):
         self.built = False
 
     def build(self, input_shape: list):
+        """Build layer parameters (kernel and bias)."""
         if False: print(f"input_shape={input_shape}")
         self.num_input_units = input_shape[-2]
         shape_kernel = [
@@ -236,9 +315,11 @@ class GeometricProductDense(GeometricAlgebraLayer):
         self.built = True
 
     def compute_output_shape(self, input_shape):
+        """Compute output shape."""
         return [*input_shape[:-2], self.units, self.algebra.num_blades]
 
     def forward(self, inputs):
+        """Forward pass using geometric product for matrix multiplication."""
         if not self.built: self.build(inputs.shape)
         w_geom = self.algebra.from_tensor(self.kernel, self.blade_indices_kernel)
 
@@ -260,6 +341,7 @@ class GeometricProductDense(GeometricAlgebraLayer):
         return result
 
     def get_config(self):
+        """Get configuration."""
         config = super().get_config()
         config.update({
             "blade_indices_kernel":
@@ -278,14 +360,16 @@ class GeometricProductDense(GeometricAlgebraLayer):
 
 # @register_keras_serializable(package="TFGA")
 class GeometricSandwichProductDense(GeometricProductDense):
-    """Analagous to Keras' Dense layer but using multivector-valued matrices
+    """Dense layer using sandwich product for transformation.
+    
+    Analagous to Keras' Dense layer but using multivector-valued matrices
     instead of scalar ones and geometric sandwich multiplication instead of
     standard multiplication.
 
     Args:
-        algebra: GeometricAlgebra instance to use for the parameters
-        blade_indices_kernel: Blade indices to use for the kernel parameter
-        blade_indices_bias: Blade indices to use for the bias parameter (if used)
+        algebra: GeometricAlgebra instance to use for the parameters.
+        blade_indices_kernel: Blade indices to use for the kernel parameter.
+        blade_indices_bias: Blade indices to use for the bias parameter (if used).
     """
 
     def __init__(
@@ -297,6 +381,17 @@ class GeometricSandwichProductDense(GeometricProductDense):
         # kernel_constraint=None, bias_constraint=None, 
         **kwargs
     ):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            units: Number of output units.
+            blade_indices_kernel: Blade indices for kernel.
+            blade_indices_bias: Blade indices for bias.
+            activation: Activation function.
+            use_bias: Whether to use bias.
+            **kwargs: Additional arguments.
+        """
         super().__init__(
             algebra, units,
             blade_indices_kernel,
@@ -315,6 +410,7 @@ class GeometricSandwichProductDense(GeometricProductDense):
         self.built = False
 
     def forward(self, inputs):
+        """Forward pass using sandwich product R*x*~R instead of R*x."""
         if not self.built: self.build(inputs.shape)
         w_geom = self.algebra.from_tensor(self.kernel, self.blade_indices_kernel)
 
@@ -349,13 +445,15 @@ class GeometricSandwichProductDense(GeometricProductDense):
 
 # @register_keras_serializable(package="TFGA")
 class GeometricProductElementwise(GeometricAlgebraLayer):
-    """Performs the elementwise geometric product with a list of multivectors
+    """Elementwise geometric product with per-unit multivectors.
+    
+    Performs the elementwise geometric product with a list of multivectors
     with as many elements as there are input units.
 
     Args:
-        algebra: GeometricAlgebra instance to use for the parameters
-        blade_indices_kernel: Blade indices to use for the kernel parameter
-        blade_indices_bias: Blade indices to use for the bias parameter (if used)
+        algebra: GeometricAlgebra instance to use for the parameters.
+        blade_indices_kernel: Blade indices to use for the kernel parameter.
+        blade_indices_bias: Blade indices to use for the bias parameter (if used).
     """
 
     def __init__(
@@ -374,6 +472,16 @@ class GeometricProductElementwise(GeometricAlgebraLayer):
         # bias_constraint=None,
         **kwargs
     ):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            blade_indices_kernel: Blade indices for kernel.
+            blade_indices_bias: Blade indices for bias.
+            activation: Activation function.
+            use_bias: Whether to use bias.
+            **kwargs: Additional arguments.
+        """
         # super().__init__(algebra=algebra, activity_regularizer=activity_regularizer, **kwargs)
         super().__init__(algebra=algebra, **kwargs)
 
@@ -396,6 +504,7 @@ class GeometricProductElementwise(GeometricAlgebraLayer):
         self.built = False
 
     def build(self, input_shape: torch.Size):
+        """Build layer parameters (per-unit kernel and bias)."""
         self.num_input_units = input_shape[-2]
         shape_kernel = [
             self.num_input_units,
@@ -434,9 +543,11 @@ class GeometricProductElementwise(GeometricAlgebraLayer):
         self.built = True
 
     def compute_output_shape(self, input_shape):
+        """Compute output shape."""
         return torch.Size([*input_shape[:-1], self.algebra.num_blades])
 
     def forward(self, inputs):
+        """Forward pass with elementwise geometric product per unit."""
         if not self.built: self.build(inputs.shape)
         w_geom = self.algebra.from_tensor(
             self.kernel, self.blade_indices_kernel)
@@ -455,6 +566,7 @@ class GeometricProductElementwise(GeometricAlgebraLayer):
         return result
 
     def get_config(self):
+        """Get configuration."""
         config = super().get_config()
         config.update({
             "blade_indices_kernel":
@@ -486,13 +598,15 @@ class GeometricProductElementwise(GeometricAlgebraLayer):
 
 # @register_keras_serializable(package="TFGA")
 class GeometricSandwichProductElementwise(GeometricProductElementwise):
-    """Performs the elementwise geometric sandwich product with a list of
+    """Elementwise sandwich product with per-unit multivectors.
+    
+    Performs the elementwise geometric sandwich product with a list of
     multivectors with as many elements as there are input units.
 
     Args:
-        algebra: GeometricAlgebra instance to use for the parameters
-        blade_indices_kernel: Blade indices to use for the kernel parameter
-        blade_indices_bias: Blade indices to use for the bias parameter (if used)
+        algebra: GeometricAlgebra instance to use for the parameters.
+        blade_indices_kernel: Blade indices to use for the kernel parameter.
+        blade_indices_bias: Blade indices to use for the bias parameter (if used).
     """
 
     def __init__(
@@ -504,6 +618,16 @@ class GeometricSandwichProductElementwise(GeometricProductElementwise):
         # kernel_constraint=None, bias_constraint=None, 
         **kwargs
     ):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            blade_indices_kernel: Blade indices for kernel.
+            blade_indices_bias: Blade indices for bias.
+            activation: Activation function.
+            use_bias: Whether to use bias.
+            **kwargs: Additional arguments.
+        """
         super().__init__(
             algebra,
             blade_indices_kernel,
@@ -521,6 +645,7 @@ class GeometricSandwichProductElementwise(GeometricProductElementwise):
         )
 
     def forward(self, inputs):
+        """Forward pass using elementwise sandwich product R*x*~R."""
         if not self.built: self.build(inputs.shape)
         w_geom = self.algebra.from_tensor( self.kernel, self.blade_indices_kernel)
 
@@ -546,19 +671,20 @@ class GeometricSandwichProductElementwise(GeometricProductElementwise):
 
 # @register_keras_serializable(package="TFGA")
 class GeometricProductConv1D(GeometricAlgebraLayer):
-    """Analagous to Keras' Conv1D layer but using multivector-valued kernels
+    """1D convolution layer using multivector kernels and geometric product.
+    
+    Analagous to Keras' Conv1D layer but using multivector-valued kernels
     instead of scalar ones and geometric product instead of
     standard multiplication.
 
     Args:
-        algebra: GeometricAlgebra instance to use for the parameters
-        filters: How many channels the output will have
-        kernel_size: Size for the convolution kernel
-        stride: Stride to use for the convolution
-        padding: "SAME" (zero-pad input length so output
-            length == input length / stride) or "VALID" (no padding)
-        blade_indices_kernel: Blade indices to use for the kernel parameter
-        blade_indices_bias: Blade indices to use for the bias parameter (if used)
+        algebra: GeometricAlgebra instance to use for the parameters.
+        filters: How many channels the output will have.
+        kernel_size: Size for the convolution kernel.
+        stride: Stride to use for the convolution.
+        padding: "SAME" (zero-pad) or "VALID" (no padding).
+        blade_indices_kernel: Blade indices to use for the kernel parameter.
+        blade_indices_bias: Blade indices to use for the bias parameter (if used).
     """
 
     def __init__(
@@ -582,6 +708,21 @@ class GeometricProductConv1D(GeometricAlgebraLayer):
         # bias_constraint=None,
         **kwargs
     ):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            filters: Number of output channels.
+            kernel_size: Convolution kernel size.
+            stride: Convolution stride.
+            padding: Padding type.
+            blade_indices_kernel: Blade indices for kernel.
+            blade_indices_bias: Blade indices for bias.
+            dilations: Dilation rate.
+            activation: Activation function.
+            use_bias: Whether to use bias.
+            **kwargs: Additional arguments.
+        """
         super().__init__(
             algebra=algebra,
             # activity_regularizer=activity_regularizer,
@@ -612,6 +753,7 @@ class GeometricProductConv1D(GeometricAlgebraLayer):
         self.built = False
 
     def build(self, input_shape: torch.Size):
+        """Build layer parameters (kernel and bias)."""
         # I: [..., S, C, B]
         self.num_input_filters = input_shape[-2]
 
@@ -654,6 +796,7 @@ class GeometricProductConv1D(GeometricAlgebraLayer):
         self.built = True
 
     def forward(self, inputs):
+        """Forward pass using geometric 1D convolution."""
         if not self.built: 
             self.build(inputs.shape)
         k_geom = self.algebra.from_tensor(
@@ -675,6 +818,7 @@ class GeometricProductConv1D(GeometricAlgebraLayer):
         return result
 
     def get_config(self):
+        """Get configuration."""
         config = super().get_config()
         config.update({
             "filters":
@@ -717,13 +861,14 @@ class GeometricProductConv1D(GeometricAlgebraLayer):
 
 # @register_keras_serializable(package="TFGA")
 class GeometricAlgebraExp(GeometricAlgebraLayer):
-    """Calculates the exponential function of the input. Input must square to
-    a scalar.
+    """Calculates the exponential function of multivector input.
+    
+    Input must square to a scalar for the exponential to be well-defined.
 
     Args:
-        algebra: GeometricAlgebra instance to use
-        square_scalar_tolerance: Tolerance to use for the square scalar check
-            or None if the check should be skipped
+        algebra: GeometricAlgebra instance to use.
+        square_scalar_tolerance: Tolerance for the square scalar check,
+            or None if the check should be skipped.
     """
 
     def __init__(
@@ -732,22 +877,34 @@ class GeometricAlgebraExp(GeometricAlgebraLayer):
         square_scalar_tolerance: Union[float, None] = 1e-4,
         **kwargs
     ):
+        """Initialize the layer.
+        
+        Args:
+            algebra: GeometricAlgebra instance.
+            square_scalar_tolerance: Tolerance for square scalar check.
+            **kwargs: Additional arguments.
+        """
         super().__init__(algebra=algebra, **kwargs)
         self.square_scalar_tolerance = square_scalar_tolerance
         self.built = False
 
     def compute_output_shape(self, input_shape):
+        """Compute output shape."""
         return torch.Size([*input_shape[:-1], self.algebra.num_blades])
 
-    def build(self,inputs_shape): self.built = True
+    def build(self, inputs_shape):
+        """Build the layer."""
+        self.built = True
 
     def forward(self, inputs):
+        """Compute exponential of input multivector."""
         if not self.built: self.build(inputs.shape)
         return self.algebra.exp(
             inputs, square_scalar_tolerance=self.square_scalar_tolerance
         )
 
     def get_config(self):
+        """Get configuration."""
         config = super().get_config()
         config.update({
             "square_scalar_tolerance": self.square_scalar_tolerance

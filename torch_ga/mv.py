@@ -1,5 +1,6 @@
-"""Defines the `MultiVector` class which is used as a convenience wrapper
-for `GeometricAlgebra` operations.
+"""Defines the MultiVector class for convenient geometric algebra operations.
+
+The MultiVector class wraps GeometricAlgebra operations in a more Pythonic interface using operator overloading.
 """
 from __future__ import annotations
 from typing import Union
@@ -12,71 +13,70 @@ import torch_ga
 
 # from icecream import ic
 class MultiVector:
-    """Wrapper for geometric algebra tensors using `GeometricAlgebra`
-    operations in a less verbose way using operators.
+    """Wrapper for geometric algebra tensors using GeometricAlgebra operations.
+    
+    Provides a less verbose interface to GeometricAlgebra operations using operators.
     """
 
     def __init__(self, blade_values: torch.Tensor, algebra: torch_ga.GeometricAlgebra):
-        """Initializes a MultiVector from a geometric algebra `torch.Tensor`
-        and its corresponding `GeometricAlgebra`.
-
+        """Initialize a MultiVector from a geometric algebra tensor.
+        
         Args:
-            blade_values: Geometric algebra `torch.Tensor` with as many elements
-            on its last axis as blades in the algebra
-            algebra: `GeometricAlgebra` instance corresponding to the geometric
-            algebra tensor
+            blade_values: Geometric algebra torch.Tensor with as many elements
+                on its last axis as blades in the algebra.
+            algebra: GeometricAlgebra instance corresponding to the  geometric
+                algebra tensor.
         """
-
         self._blade_values = blade_values
         self._algebra = algebra
 
     def split(self):
-        """blades multivector."""
+        """Return blades split by grade."""
         return self._algebra.split(self._blade_values)
 
     @property
     def blades(self):
-        """blades multivector."""
+        """Return list of blade names."""
         return self._algebra.blades
 
     @property
     def blades_numbers(self):
-        """blades multivector."""
+        """Return blade counts for each grade."""
         return self._algebra.blades_numbers
 
     @property
     def scalar(self):
-        """scalar part of multivector."""
+        """Return scalar part of multivector."""
         return self._blade_values[...,0]
     @property
     def pseudo_scalar(self):
-        """scalar part of multivector."""
+        """Return pseudoscalar part of multivector."""
         return self._blade_values[...,-1]
     @property
     def vector(self):
-        """vector part of multivector."""
+        """Return vector part of multivector."""
         return self._blade_values[...,1:self.algebra.dim+1]
     @property
     def pseudo_vector(self):
-        """vector part of multivector."""
+        """Return pseudovector part of multivector."""
         return self._blade_values[...,-self.algebra.dim-1:-1]
 
     @property
     def bivector(self):
-        """bivector part of multivector."""        
+        """Return bivector part of multivector."""         
         return self._blade_values[...,self.algebra.blade_degrees==2]
     @property
     def pseudo_bivector(self):
-        """pseudo bivector part of multivector."""
+        """Return pseudo-bivector part of multivector."""
         return self._blade_values[...,self.algebra.blade_degrees==(self.algebra.dim-2)]
 
     @property
     def trivector(self):
-        """bivector part of multivector."""        
+        """Return trivector part of multivector."""        
         return self._blade_values[...,self.algebra.blade_degrees==3]
     @property
     def pseudo_trivector(self):
-        """pseudo bivector part of multivector."""
+        """Return pseudo-trivector part of multivector."""
         return self._blade_values[...,self.algebra.blade_degrees==(self.algebra.dim-3)]
         
     @property
@@ -91,17 +91,21 @@ class MultiVector:
 
     @property
     def batch_shape(self):
-        """Batch shape of the multivector (ie. the shape of all axes except
-        for the last one in the geometric algebra tensor).
+        """Return batch shape of the multivector.
+        
+        The shape of all axes except for the last one in the geometric algebra tensor.
         """
         return self._blade_values.shape[:-1]
 
     def __len__(self) -> int:
-        """Number of elements on the first axis of the geometric algebra
-        tensor."""
+        """Return number of elements on the first axis.
+        
+        Number of elements on the first axis of the geometric algebra tensor.
+        """
         return self._blade_values.shape[0]
 
     def __iter__(self):
+        """Iterate over multivector elements."""
         for n in range(self._blade_values.shape[0]):
             # If we only have one axis left, return the
             # actual numbers, otherwise return a new
@@ -115,18 +119,14 @@ class MultiVector:
                 )
 
     def __lshift__(self, other: MultiVector) -> MultiVector:
-        """
-        Left contraction
-        """
+        """Left contraction operator."""
         assert isinstance(other, MultiVector), f"{type(other)}"
         return MultiVector(
             self._algebra.right_contraction(self._blade_values, other._blade_values),
             self._algebra
         )
     def __rshift__(self, other: MultiVector) -> MultiVector:
-        """
-        Right contraction
-        """
+        """Right contraction operator."""
         assert isinstance(other, MultiVector), f"{type(other)}"
         return MultiVector(
             self._algebra.right_contraction(self._blade_values, other._blade_values),
@@ -135,7 +135,7 @@ class MultiVector:
     
 
     def __xor__(self, other: MultiVector) -> MultiVector:
-        """Exterior product. See `GeometricAlgebra.ext_prod()`"""
+        """Exterior product. See GeometricAlgebra.ext_prod()."""
         assert isinstance(other, MultiVector), f"{type(other)}"
 
         return MultiVector(
@@ -144,7 +144,7 @@ class MultiVector:
         )
 
     def __or__(self, other: MultiVector) -> MultiVector:
-        """Inner product. See `GeometricAlgebra.inner_prod()`"""
+        """Inner product. See GeometricAlgebra.inner_prod()."""
         assert isinstance(other, MultiVector), f"{type(other)}"
 
         # return MultiVector(
@@ -154,8 +154,7 @@ class MultiVector:
         return MultiVector(self._algebra.inner_prod(self._blade_values, other._blade_values),self._algebra)
 
     def __mul__(self, other: MultiVector) -> MultiVector:
-        """Geometric product. See `GeometricAlgebra.geom_prod()`"""
-        
+        """Geometric product. See GeometricAlgebra.geom_prod()."""
         if type(other) in (int, float, torch.Tensor):
             return MultiVector(self._blade_values*other,self._algebra)
         
@@ -182,7 +181,7 @@ class MultiVector:
         )
 
     def __and__(self, other: MultiVector) -> MultiVector:
-        """Regressive product. See `GeometricAlgebra.reg_prod()`"""        
+        """Regressive product. See GeometricAlgebra.reg_prod()."""        
         assert isinstance(other, MultiVector), f"{type(other)}"                
         return MultiVector(
             self._algebra.reg_prod(self._blade_values, other._blade_values),
@@ -190,7 +189,7 @@ class MultiVector:
         )
 
     def __invert__(self) -> MultiVector:
-        """Reversion. See `GeometricAlgebra.reversion()`"""
+        """Reversion. See GeometricAlgebra.reversion()."""
         return MultiVector(
             self._algebra.reversion(self._blade_values),
             self._algebra
@@ -232,6 +231,7 @@ class MultiVector:
             self._algebra
         )
     def __rsub__(a,b):
+        """Reverse subtraction."""
         return b + -1 * a        
 
     def __pow__(self, n: int) -> MultiVector:
@@ -242,7 +242,7 @@ class MultiVector:
         )
 
     def __getitem__(self, key: Union[str, list[str]]) -> MultiVector:
-        """`MultiVector` with only passed blade names as non-zeros."""
+        """Return MultiVector with only passed blade names as non-zeros."""
         if type(key) in [int, float, slice]:
             return MultiVector(
                 self._blade_values[key],
@@ -255,21 +255,22 @@ class MultiVector:
         )
 
     def __call__(self, key: Union[str, list[str]]):
-        """`torch.Tensor` with passed blade names on last axis."""
+        """Return torch.Tensor with passed blade names on last axis."""
         return self._algebra.select_blades_with_name(self._blade_values, key)
 
     def __repr__(self) -> str:
+        """Return string representation."""
         return self._algebra.mv_repr(self._blade_values)
 
     def proj(self, other: MultiVector) -> MultiVector:
-        """meet of multivectors."""
+        """Projection onto multivector."""
         assert isinstance(other, MultiVector), f"{type(other)}"
         return MultiVector(
             self._algebra.projection(other._blade_values, self._blade_values),
             self._algebra
         )
     def proj_on(self, other: MultiVector) -> MultiVector:
-        """meet of multivectors."""
+        """Projection of this multivector onto another."""
         assert isinstance(other, MultiVector), f"{type(other)}"
         return MultiVector(
             self._algebra.projection(self._blade_values, other._blade_values),
@@ -277,7 +278,7 @@ class MultiVector:
         )
 
     def sandwitch(self, other: MultiVector) -> MultiVector:
-        """geometric product of b a b~, b is the other, a is myself"""
+        """Sandwich product: b*a*b~ where b is other, a is self."""
         assert isinstance(other, MultiVector), f"{type(other)}"
         return MultiVector(
             self._algebra.sandwitch_prod(self._blade_values, other._blade_values),
@@ -285,14 +286,14 @@ class MultiVector:
         )
 
     def meet(self, other: MultiVector) -> MultiVector:
-        """meet of multivectors."""
+        """Meet (intersection) of multivectors."""
         assert isinstance(other, MultiVector), f"{type(other)}"
         return MultiVector(
             self._algebra.meet(self._blade_values, other._blade_values),
             self._algebra
         )
     def join(self, other: MultiVector) -> MultiVector:
-        """meet of multivectors."""
+        """Join (union) of multivectors."""
         assert isinstance(other, MultiVector), f"{type(other)}"
         return MultiVector(
             self._algebra.join(self._blade_values, other._blade_values),
@@ -300,37 +301,36 @@ class MultiVector:
         )
 
     def inverse(self) -> MultiVector:
-        """Inverse. See `GeometricAlgebra.inverse()`."""
+        """Return inverse of multivector."""
         return MultiVector(
             self._algebra.inverse(self._blade_values),
             self._algebra
         )
         
     def inv(self) -> MultiVector:
-        """Inverse. See `GeometricAlgebra.inverse()`."""
+        """Return inverse of multivector."""
         return self.inverse()
     
     @property
     def shape(self):
+        """Return shape of the multivector."""
         return self._blade_values.shape[:-1]
 
     def simple_inverse(self) -> MultiVector:
-        """Simple inverse. See `GeometricAlgebra.simple_inverse()`."""
+        """Return simple inverse of multivector."""
         return MultiVector(
             self._algebra.simple_inverse(self._blade_values),
             self._algebra
         )
 
     def dual(self) -> MultiVector:
-        """Dual. See `GeometricAlgebra.dual()`."""
+        """Return dual of multivector."""
         return MultiVector(
             self._algebra.dual(self._blade_values),
             self._algebra
         )
     def grade(self,_grade=None):
-        """
-        Retruns the blade of the specified grade.
-        """
+        """Return the blade of the specified grade."""
         if _grade is None:
             return self._algebra.grade(self._blade_values)
         
@@ -345,10 +345,15 @@ class MultiVector:
     #     return self._algebra.grade(self._blade_values)
 
     def norm(self):
+        """Return norm of multivector."""
         return self._algebra.norm(self._blade_values)
+    
     def inorm(self):
+        """Return inner norm of multivector."""
         return self._algebra.inorm(self._blade_values)
+    
     def normalized(self):
+        """Return normalized multivector."""
         # return self._algebra.normalized(self._blade_values)  
         return MultiVector(
             self._algebra.normalized(self._blade_values),
@@ -357,28 +362,28 @@ class MultiVector:
 
 
     def conjugation(self) -> MultiVector:
-        """Conjugation. See `GeometricAlgebra.conjugation()`."""
+        """Return conjugation of multivector."""
         return MultiVector(
             self._algebra.conjugation(self._blade_values),
             self._algebra
         )
         
     def reversion(self) -> MultiVector:
-        """reversion. See `GeometricAlgebra.reversion()`."""
+        """Return reversion of multivector."""
         return MultiVector(
             self._algebra.reversion(self._blade_values),
             self._algebra
         )
 
     def grade_automorphism(self) -> MultiVector:
-        """Grade automorphism. See `GeometricAlgebra.grade_automorphism()`."""
+        """Return grade automorphism of multivector."""
         return MultiVector(
             self._algebra.grade_automorphism(self._blade_values),
             self._algebra
         )
 
     def approx_exp(self, order: int = 50) -> MultiVector:
-        """Approximate exponential. See `GeometricAlgebra.approx_exp()`."""
+        """Return approximate exponential of multivector."""
         return MultiVector(
             self._algebra.approx_exp(self._blade_values, order=order),
             self._algebra
@@ -386,7 +391,7 @@ class MultiVector:
 
   
     def exp(self, square_scalar_tolerance: Union[float, None] = 1e-4) -> MultiVector:
-        """Exponential. See `GeometricAlgebra.exp()`."""
+        """Return exponential of multivector."""
         return MultiVector(
             self._algebra.exp(
                 self._blade_values,
@@ -396,7 +401,7 @@ class MultiVector:
         )
 
     def approx_log(self, order: int = 50) -> MultiVector:
-        """Approximate logarithm. See `GeometricAlgebra.approx_log()`."""
+        """Return approximate logarithm of multivector."""
         return MultiVector(
             self._algebra.approx_log(self._blade_values, order=order),
             self._algebra
@@ -409,7 +414,7 @@ class MultiVector:
     def geom_conv1d(self, kernel: MultiVector,
                     stride: int, padding: str,
                     dilations: Union[int, None] = None) -> MultiVector:
-        """1D convolution. See `GeometricAlgebra.geom_conv1d().`"""
+        """Perform 1D geometric convolution."""
         return MultiVector(
             self._algebra.geom_conv1d(
                 self._blade_values, kernel._blade_values,
@@ -418,6 +423,7 @@ class MultiVector:
             self._algebra
         )
     def __pow__(a,b):
+        """Power operator for integer powers."""
         assert(isinstance(b,int) and b >= 0), "power only defined on integers"
         if b==0: return a._algebra.e_
         tmp = a

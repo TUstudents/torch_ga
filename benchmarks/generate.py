@@ -1,8 +1,13 @@
+"""Generate benchmark results for torch_ga performance testing.
+
+Runs pytest benchmarks for various operations and element counts.
+"""
 import subprocess
 import os
 
 
 def main():
+    """Run all benchmarks and save results to JSON files."""
     results_dir = "results"
     os.makedirs(results_dir, exist_ok=True)
 

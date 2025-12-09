@@ -1,3 +1,7 @@
+"""Jacobian computation utilities for automatic differentiation.
+
+Provides efficient batch Jacobian computation for geometric algebra functions.
+"""
 import torch
 
 import einops
@@ -15,22 +19,22 @@ from functools import partial
 
 
 def get_jacobian(fun, x, m=None, slice_in=None, slice_out=None):
-    """
-    Computes the jacobian of `fun`-tion with respect to the variable `x`.
-    Batch evaluates the jacobian with cost of O(1) vs O(d), but has memory cost of O(d) (only work for low d, d <~ 1000).
-    Parameters:
-    -----------
-    fun: callable: function for the jacobian
-    x: torch.Tensor : coordinated of the jacobian
-    slice_in, slice_out: if not None, will slice the input or output of the Jacobian
+    """Compute the Jacobian of a function with respect to input variable.
+    
+    Batch evaluates the Jacobian with cost O(1) vs O(d), but has memory cost O(d).
+    Only works for low dimensionality (d < 1000).
+    
+    Args:
+        fun: Callable function for which to compute the Jacobian.
+        x: Input tensor coordinates for the Jacobian evaluation.
+        m: Optional output dimension.
+        slice_in: Optional slice for input dimensions of the Jacobian.
+        slice_out: Optional slice for output dimensions of the Jacobian.
 
     Returns:
-    --------
-    jac: Jacobian
-        Named tuple containing members `y` and `j`.
-        `y` is the function value  of `fun` evaluated at `x`
-        `j` is the jacobian matrix of `fun` evaluated at `x`
-        
+        Jacobian: Named tuple containing:
+            - y: Function value of fun evaluated at x.
+            - j: Jacobian matrix of fun evaluated at x.
     """
     if len(x.shape)==1: x.unsqueeze(0)
     shape = x.shape[:-1]

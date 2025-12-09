@@ -20,18 +20,17 @@ class BladeKind(Enum):
 
 
 def get_blade_repr(blade_name: str, _scalar_name="1", _latex_flag=False, base_symbol="e") -> str:
-    """Returns the representation to use
-    for a given blade.
-
+    """Return the representation to use for a given blade.
+    
     Examples:
-    - `"12"` -> `"e_12"`
-    - `""` -> `"1"`
+        - "12" -> "e_12"
+        - "" -> "1"
 
     Args:
-        blade_name: name of the blade in the algebra (eg. `"12"`)
+        blade_name: Name of the blade in the algebra (eg. "12").
 
     Returns:
-        Representation to use for a given blade
+        Representation to use for a given blade.
     """
     # if blade_name == "":
     #     return "1"
@@ -86,6 +85,15 @@ def is_blade_kind(blade_degrees: torch.Tensor, kind: List[Union[BladeKind, str]]
 
 
 def set_diff(a,b):
+    """Return the set difference between two tensors.
+    
+    Args:
+        a: First tensor.
+        b: Second tensor.
+    
+    Returns:
+        Elements in a but not in b.
+    """
     combined = torch.cat((a.squeeze(), b.squeeze()))
     uniques, counts = combined.unique(return_counts=True)
     difference = uniques[counts == 1]
@@ -94,16 +102,15 @@ def set_diff(a,b):
 
 
 def invert_blade_indices(num_blades: int, blade_indices: torch.Tensor) -> torch.Tensor:
-    """Returns all blade indices except for the given ones.
+    """Return all blade indices except for the given ones.
 
     Args:
-        num_blades: Total number of blades in the algebra
-        blade_indices: blade indices to exclude
+        num_blades: Total number of blades in the algebra.
+        blade_indices: Blade indices to exclude.
 
     Returns:
-        All blade indices except for the given ones
+        All blade indices except for the given ones.
     """
-
     # all_blades = tf.range(num_blades, dtype=blade_indices.dtype)
     # return tf.sparse.to_dense(tf.sets.difference(
     #     tf.expand_dims(all_blades, axis=0),
@@ -159,8 +166,10 @@ def get_blade_of_kind_indices(blade_degrees: torch.Tensor, kind: BladeKind,
 
 
 def _normal_swap(x: List[str]) -> List[str]:
-    """Swaps the first unordered blade pair and returns the new list as well
-    as whether a swap was performed."""
+    """Swap the first unordered blade pair.
+    
+    Returns the new list as well as whether a swap was performed.
+    """
     for i in range(len(x) - 1):
         a, b = x[i], x[i + 1]
         if a > b:  # string comparison
@@ -170,16 +179,17 @@ def _normal_swap(x: List[str]) -> List[str]:
 
 
 def get_normal_ordered(blade_name: str) -> Tuple[int, str]:
-    """Returns the normal ordered blade name and its sign.
-    Example: 21 => -1, 12
+    """Return the normal ordered blade name and its sign.
+    
+    Example: 21 => -1, 12.
 
     Args:
         blade_name: Blade name for which to return normal ordered
-        name and sign
+            name and sign.
 
     Returns:
-        sign: sign of the blade
-        blade_name: normalized name of the blade
+        sign: Sign of the blade.
+        blade_name: Normalized name of the blade.
     """
     blade_name = list(blade_name)
     sign = -1
@@ -191,18 +201,18 @@ def get_normal_ordered(blade_name: str) -> Tuple[int, str]:
 
 
 def get_blade_indices_from_names(blade_names: List[str],
-                                 all_blade_names: List[str]) -> torch.Tensor:
-    """Finds blade signs and indices for given blade names in a list of blade
-    names. Blade names can be unnormalized and their correct sign will be
-    returned.
+                                  all_blade_names: List[str]) -> torch.Tensor:
+    """Find blade signs and indices for given blade names.
+    
+    Blade names can be unnormalized and their correct sign will be returned.
 
     Args:
         blade_names: Blade names to return indices for. May be unnormalized.
-        all_blade_names: Blade names to use as index
+        all_blade_names: Blade names to use as index.
 
     Returns:
-        blade_signs: signs for the passed blades in same order as passed
-        blade_indices: blade indices in the same order as passed
+        blade_signs: Signs for the passed blades in same order as passed.
+        blade_indices: Blade indices in the same order as passed.
     """
     signs_and_names = [get_normal_ordered(b) for b in blade_names]
 
@@ -218,9 +228,15 @@ def get_blade_indices_from_names(blade_names: List[str],
 import math
 from itertools import accumulate
 def get_sub_algebra(n):
-    """
-    We have an algebra G(n) and we want to get G(n-1)
-    it suppose to take the first element
+    """Get G(n-1) subalgebra from G(n) algebra.
+    
+    Takes the first element to construct the subalgebra.
+    
+    Args:
+        n: Dimension of the algebra.
+    
+    Returns:
+        Tuple of (pos_real, pos_complex) positions.
     """
     idx_full = [math.comb(n, _) for _ in range(n+1)]
     idx_reduced = [math.comb(n-1, _) for _ in range(n)]
@@ -230,9 +246,14 @@ def get_sub_algebra(n):
     pos_real = [ _  for _ in range(1<<n) if not _ in pos_complex]    
     return pos_real, pos_complex    
 def get_sub_algebra_tree(n,k=1):
-    """
-    Returns the sub-algebra tree, 
-    up to level 1<=k<=mn
+    """Return the sub-algebra tree up to level k.
+    
+    Args:
+        n: Dimension of the algebra.
+        k: Maximum level (1 <= k <= n).
+    
+    Returns:
+        Sub-algebra tree structure.
     """
     assert(k<=n),f"should be k={k}<=n={n}"
     def _split(_list,n):
@@ -248,8 +269,14 @@ def get_sub_algebra_tree(n,k=1):
     _list = list(range(1<<n))
     return _split(_list,n)
 def get_merged_tree(_tree,pairs_flag=True):
-    """
-    Flattens the tree
+    """Flatten the tree structure.
+    
+    Args:
+        _tree: Tree structure to flatten.
+        pairs_flag: Whether to use pairs mode.
+    
+    Returns:
+        Flattened tree list.
     """
     def _merge(_tmp):        
         if (pairs_flag and type(_tmp[0][0])==list) or (not pairs_flag and type(_tmp[0])==list):
@@ -259,12 +286,21 @@ def get_merged_tree(_tree,pairs_flag=True):
     return _tree
 
 def get_complex_indexes(n):
+    """Get complex indexes for algebra of dimension n.
+    
+    Args:
+        n: Dimension of the algebra.
+    
+    Returns:
+        Tuple of (list, tree) containing complex indexes and tree structure.
+    """
     _tree = get_sub_algebra_tree(n)
     _list = get_merged_tree(_tree)
     return _list, _tree
 
 
 def test():
+    """Test function for subalgebra operations."""
     # tr = [0,2,3,4,8,9,10,14]
     # pr = [1,5,6,7,11,12,13,15]
     # print(get_sub_algebra(4))

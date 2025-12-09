@@ -1,3 +1,7 @@
+"""Generate graphs from benchmark results.
+
+Loads benchmark JSON files and creates performance plots.
+"""
 from glob import glob
 import os
 import pandas as pd
@@ -8,6 +12,14 @@ import clifford
 
 
 def load_results(path):
+    """Load benchmark results from JSON file.
+    
+    Args:
+        path: Path to benchmark JSON file.
+    
+    Returns:
+        Dictionary containing lib_name, fn_name, num_elements, mean, and stddev.
+    """
     with open(path, "r", encoding="utf-8") as result_file:
         data = json.load(result_file)
 
@@ -34,6 +46,7 @@ def load_results(path):
 
 
 def main():
+    """Load all benchmark results and generate performance graphs."""
     result_paths = sorted(glob(os.path.join("results", "*.json")))
     out_path = "output"
 

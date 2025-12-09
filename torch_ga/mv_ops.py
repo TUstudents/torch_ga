@@ -6,6 +6,16 @@ import torch
 # from icecream import ic
 
 def mv_multiply(a_blade_values: torch.Tensor, b_blade_values: torch.Tensor, cayley: torch.Tensor) -> torch.Tensor:
+    """Multiply two multivector tensors using the geometric product.
+    
+    Args:
+        a_blade_values: First multivector blade values.
+        b_blade_values: Second multivector blade values.
+        cayley: Cayley tensor for the algebra.
+    
+    Returns:
+        Result of geometric product multiplication.
+    """
     # x = torch.einsum("i,j,ijk->k", a_blade_values, b_blade_values, cayley)
     
 
@@ -56,6 +66,16 @@ def mv_multiply(a_blade_values: torch.Tensor, b_blade_values: torch.Tensor, cayl
 
 
 def mv_multiply_element_wise(a_blade_values: torch.Tensor, b_blade_values: torch.Tensor, cayley: torch.Tensor) -> torch.Tensor:
+    """Multiply two multivector tensors element-wise.
+    
+    Args:
+        a_blade_values: First multivector blade values.
+        b_blade_values: Second multivector blade values.
+        cayley: Cayley tensor (unused, for API compatibility).
+    
+    Returns:
+        Element-wise product of blade values.
+    """
     x = a_blade_values * b_blade_values
     return x
 
@@ -63,6 +83,17 @@ import math
 import torch.nn.functional as F
 # https://discuss.pytorch.org/t/tf-extract-image-patches-in-pytorch/43837/10
 def extract_image_patches(x, kernel, stride=1, dilation=1):
+    """Extract image patches for convolution operations.
+    
+    Args:
+        x: Input tensor.
+        kernel: Kernel size.
+        stride: Stride value.
+        dilation: Dilation value.
+    
+    Returns:
+        Extracted patches tensor.
+    """
     # Do TF 'SAME' Padding
     b,c,h,w = x.shape
     h2 = math.ceil(h / stride)
@@ -81,17 +112,20 @@ def extract_image_patches(x, kernel, stride=1, dilation=1):
 # https://discuss.pytorch.org/t/conv1d-implementation-using-torch-nn-functional-unfold/109643/3
 import torch.nn.functional as F
 def f_mv_conv1d(input, weight, cayley: torch.Tensor, bias=None, stride=1, padding=0, dilation=1, groups=1):
-    """
-    input : input tensor of shape    : (minibatch,in_channels, iW)
-    input : input tensor of shape    : (minibatch,in_channels, width, num_blades)
-    weight : filters of shape : (out_channels, in_channels/groups, kW)
-    weight : filters of shape : (out_channels, in_channels/groups, kernel_size, num_blades)
-    bias :  optional bias of shape (out_channels). Default: None
-    bias :  optional bias of shape (out_channels, num_blades). Default: None
-    stride :  the stride of the convolving kernel. Can be a single number or a one-element tuple (sW,). Default: 1
-    padding : implicit paddings on both sides of the input. Can be a string {‘valid’, ‘same’}, single number or a one-element tuple (padW,). Default: 0 padding='valid' is the same as no padding. padding='same' pads the input so the output has the same shape as the input. However, this mode doesn’t support any stride values other than 1. 
-    dilation : the spacing between kernel elements. Can be a single number or a one-element tuple (dW,). Default: 1
-    groups : split input into groups, in_channels should be divisible by the number of groups. Default: 1    
+    """Perform 1D convolution on multivectors.
+    
+    Args:
+        input: Input tensor of shape (minibatch, in_channels, width, num_blades).
+        weight: Filters of shape (out_channels, in_channels/groups, kernel_size, num_blades).
+        cayley: Cayley tensor for geometric product.
+        bias: Optional bias of shape (out_channels, num_blades).
+        stride: Stride of the convolving kernel.
+        padding: Implicit paddings. Can be 'valid', 'same', or integer.
+        dilation: Spacing between kernel elements.
+        groups: Split input into groups.
+    
+    Returns:
+        Convolution output tensor.
     """
     # kernel_size = weight.shape
 
@@ -134,6 +168,19 @@ def f_mv_conv1d(input, weight, cayley: torch.Tensor, bias=None, stride=1, paddin
 import numpy as np
 def mv_conv1d(a_blade_values: torch.Tensor, k_blade_values: torch.Tensor, cayley: torch.Tensor,
               stride: int, padding: str, dilations: Union[int, None] = None) -> torch.Tensor:
+    """Perform 1D convolution on multivectors using Winograd method.
+    
+    Args:
+        a_blade_values: Input multivector blade values.
+        k_blade_values: Kernel multivector blade values.
+        cayley: Cayley tensor for the algebra.
+        stride: Convolution stride.
+        padding: Padding mode ('SAME' or 'VALID').
+        dilations: Optional dilation value.
+    
+    Returns:
+        Convolution output tensor.
+    """
     # Winograd convolution
 
     # A: [..., S, CI, BI]
@@ -198,6 +245,15 @@ def mv_conv1d(a_blade_values: torch.Tensor, k_blade_values: torch.Tensor, cayley
 
 
 def mv_reversion(a_blade_values, algebra_blade_degrees):
+    """Apply grade reversion to multivector blade values.
+    
+    Args:
+        a_blade_values: Multivector blade values.
+        algebra_blade_degrees: Blade degrees from the algebra.
+    
+    Returns:
+        Reversion of the multivector.
+    """
     algebra_blade_degrees = algebra_blade_degrees.to(torch.float32)
     # for each blade, 0 if even number of swaps required, else 1
     odd_swaps =  (torch.floor(algebra_blade_degrees * (algebra_blade_degrees - 0.5)) % 2).to(dtype=torch.float32)
@@ -207,6 +263,15 @@ def mv_reversion(a_blade_values, algebra_blade_degrees):
 
 
 def mv_grade_automorphism(a_blade_values, algebra_blade_degrees):
+    """Apply grade automorphism to multivector blade values.
+    
+    Args:
+        a_blade_values: Multivector blade values.
+        algebra_blade_degrees: Blade degrees from the algebra.
+    
+    Returns:
+        Grade automorphism of the multivector.
+    """
     algebra_blade_degrees = algebra_blade_degrees.to(dtype=torch.float32)
     signs = 1.0 - 2.0 * (algebra_blade_degrees % 2.0)
     return signs * a_blade_values

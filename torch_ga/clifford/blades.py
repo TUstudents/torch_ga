@@ -1,4 +1,4 @@
-"""Inspired by https://github.com/pygae/clifford"""
+"""Blade operations inspired by pygae/clifford."""
 
 import functools
 import itertools
@@ -9,7 +9,10 @@ import torch
 
 # copied from the itertools docs
 def _powerset(iterable):
-    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    """Generate powerset of an iterable.
+    
+    Example: powerset([1,2,3]) -> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3).
+    """
     s = list(iterable)
     return itertools.chain.from_iterable(
         itertools.combinations(s, r) for r in range(len(s) + 1)
@@ -17,7 +20,14 @@ def _powerset(iterable):
 
 
 class ShortLexBasisBladeOrder:
+    """Short lexicographic basis blade ordering for Clifford algebras."""
+    
     def __init__(self, n_vectors):
+        """Initialize blade ordering for n basis vectors.
+        
+        Args:
+            n_vectors: Number of basis vectors in the algebra.
+        """
         self.index_to_bitmap = torch.empty(2**n_vectors, dtype=int)
         self.grades = torch.empty(2**n_vectors, dtype=int)
         self.bitmap_to_index = torch.empty(2**n_vectors, dtype=int)
@@ -31,7 +41,7 @@ class ShortLexBasisBladeOrder:
 
 
 def set_bit_indices(x: int):
-    """Iterate over the indices of bits set to 1 in `x`, in ascending order"""
+    """Iterate over the indices of bits set to 1 in x, in ascending order."""
     n = 0
     while x > 0:
         if x & 1:
@@ -41,7 +51,7 @@ def set_bit_indices(x: int):
 
 
 def count_set_bits(bitmap: int) -> int:
-    """Counts the number of bits set to 1 in bitmap"""
+    """Count the number of bits set to 1 in bitmap."""
     count = 0
     for i in set_bit_indices(bitmap):
         count += 1
@@ -49,9 +59,16 @@ def count_set_bits(bitmap: int) -> int:
 
 
 def canonical_reordering_sign_euclidean(bitmap_a, bitmap_b):
-    """
-    Computes the sign for the product of bitmap_a and bitmap_b
-    assuming a euclidean metric
+    """Compute the sign for the product of bitmap_a and bitmap_b.
+    
+    Assumes a Euclidean metric.
+    
+    Args:
+        bitmap_a: First bitmap.
+        bitmap_b: Second bitmap.
+    
+    Returns:
+        Sign (+1 or -1) for the product.
     """
     a = bitmap_a >> 1
     sum_value = 0
@@ -65,9 +82,17 @@ def canonical_reordering_sign_euclidean(bitmap_a, bitmap_b):
 
 
 def canonical_reordering_sign(bitmap_a, bitmap_b, metric):
-    """
-    Computes the sign for the product of bitmap_a and bitmap_b
-    given the supplied metric
+    """Compute the sign for the product of bitmap_a and bitmap_b.
+    
+    Uses the supplied metric for computation.
+    
+    Args:
+        bitmap_a: First bitmap.
+        bitmap_b: Second bitmap.
+        metric: Metric array.
+    
+    Returns:
+        Sign for the product.
     """
     bitmap = bitmap_a & bitmap_b
     output_sign = canonical_reordering_sign_euclidean(bitmap_a, bitmap_b)
@@ -81,9 +106,17 @@ def canonical_reordering_sign(bitmap_a, bitmap_b, metric):
 
 
 def gmt_element(bitmap_a, bitmap_b, sig_array):
-    """
-    Element of the geometric multiplication table given blades a, b.
-    The implementation used here is described in :cite:`ga4cs` chapter 19.
+    """Compute element of the geometric multiplication table for blades a and b.
+    
+    Implementation described in ga4cs chapter 19.
+    
+    Args:
+        bitmap_a: Bitmap for blade a.
+        bitmap_b: Bitmap for blade b.
+        sig_array: Signature array.
+    
+    Returns:
+        Tuple of (output_bitmap, output_sign).
     """
     output_sign = canonical_reordering_sign(bitmap_a, bitmap_b, sig_array)
     output_bitmap = bitmap_a ^ bitmap_b
@@ -129,6 +162,16 @@ def gmt_element(bitmap_a, bitmap_b, sig_array):
 
 import numpy as np
 def construct_gmt(index_to_bitmap, bitmap_to_index, signature):
+    """Construct geometric multiplication tables.
+    
+    Args:
+        index_to_bitmap: Index to bitmap mapping.
+        bitmap_to_index: Bitmap to index mapping.
+        signature: Metric signature.
+    
+    Returns:
+        List of [t_geom, t_inner, t_outer] tensors.
+    """
     n = len(index_to_bitmap)
     array_length = int(n * n)
 

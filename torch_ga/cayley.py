@@ -1,5 +1,6 @@
-"""Operations for constructing the cayley 3-tensor needed
-for the geometric product. Used internally.
+"""Operations for constructing the Cayley 3-tensor for geometric product.
+
+Provides internal functions to build the Cayley tensor needed for geometric algebra operations.
 """
 from itertools import combinations
 import numpy as np
@@ -36,6 +37,15 @@ def _reduce_bases(a, b, metric):
 
 
 def blades_from_bases(vector_bases):
+    """Generate all blades from vector bases.
+    
+    Args:
+        vector_bases: List of vector basis names.
+    
+    Returns:
+        Tuple of (all_combinations, degrees) where all_combinations is list
+        of blade names and degrees is list of their grades.
+    """
     all_combinations = [""]
     degrees = [0]
     for i in range(1, len(vector_bases) + 1):
@@ -47,6 +57,17 @@ def blades_from_bases(vector_bases):
 
 
 def get_cayley_tensor(metric, bases, blades):
+    """Construct Cayley tensors for geometric, inner, and outer products.
+    
+    Args:
+        metric: Metric tensor values.
+        bases: List of basis vector names.
+        blades: List of all blade names.
+    
+    Returns:
+        Tuple of (t_geom, t_inner, t_outer) numpy arrays representing
+        the Cayley tensors for geometric, inner, and outer products.
+    """
     num_blades = len(blades)
 
     t_geom = np.zeros((num_blades, num_blades, num_blades), dtype=np.int32)

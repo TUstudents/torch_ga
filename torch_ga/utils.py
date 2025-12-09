@@ -1,7 +1,4 @@
-"""
-Utility functions to converty from vector to GA representation. they assume G(0,1,1,1)
-
-"""
+"""Utility functions to convert from vector to GA representation for G(0,1,1,1)."""
 
 
 from typing import List, Any, Union, Optional
@@ -25,9 +22,7 @@ from .torch_ga import GeometricAlgebra
 # 
 
 def plane2pga(ga, distance, normal_dir):
-    """
-    Plane w/ normal direction n in R3, origin distance d in R
-    """
+    """Convert plane with normal direction n in R3 and origin distance d to PGA."""
     inputs = torch.cat([distance,normal_dir],dim=-1)
     blade_indices = (ga.blade_degrees==1).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -35,6 +30,11 @@ def plane2pga(ga, distance, normal_dir):
     return tensor
 
 def pga2plane(ga,tensor):
+    """Convert PGA tensor to plane representation.
+    
+    Returns:
+        Tuple of (distance, normal_dir).
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = (ga.blade_degrees==1).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -43,9 +43,7 @@ def pga2plane(ga,tensor):
     return distance,normal_dir
 
 def line2pga(ga, orthogonal_shift, direction):
-    """
-    Line w/ direction n in R3, orthogonal shift s in R3
-    """    
+    """Convert line with direction n in R3 and orthogonal shift s to PGA."""
     inputs = torch.cat([orthogonal_shift,direction],dim=-1)
     blade_indices = (ga.blade_degrees==ga.p-1).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -53,6 +51,11 @@ def line2pga(ga, orthogonal_shift, direction):
     return tensor
 
 def pga2line_(ga,tensor):
+    """Convert PGA tensor to line representation (internal version).
+    
+    Returns:
+        Tuple of (orthogonal_shift, direction).
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = (ga.blade_degrees==ga.p-1).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -62,6 +65,11 @@ def pga2line_(ga,tensor):
     return orthogonal_shift, direction
 
 def pga2line(ga,tensor):
+    """Convert PGA tensor to line representation.
+    
+    Returns:
+        Tuple of (points, direction).
+    """
     if not isinstance(tensor, MultiVector): 
         lines = ga(tensor)
     else:
@@ -83,9 +91,7 @@ def pga2line(ga,tensor):
     # return orthogonal_shift, direction
 
 def point2pga(ga, point):
-    """
-    Point p in R3
-    """    
+    """Convert point p in R3 to PGA representation."""
     inputs = torch.cat([point,torch.ones([*point.shape[:-1],1]).to(point)],dim=-1)
     blade_indices = (ga.blade_degrees==ga.p).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -94,6 +100,11 @@ def point2pga(ga, point):
     return tensor
 
 def pga2point(ga,tensor):
+    """Convert PGA tensor to point in R3.
+    
+    Returns:
+        Point coordinates.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = (ga.blade_degrees==ga.p).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -105,9 +116,7 @@ def pga2point(ga,tensor):
 # CGA
 
 def point2cga(ga, point):
-    """
-    Point p in R3
-    """    
+    """Convert point p in R3 to CGA representation."""
     inputs = torch.cat([point,torch.ones([*point.shape[:-1],1]).to(point)],dim=-1)
     blade_indices = torch.tensor([5,12,14,15])
     tensor = ga.from_tensor(inputs, blade_indices)
@@ -115,6 +124,11 @@ def point2cga(ga, point):
     return tensor
 
 def cga2point(ga,tensor):
+    """Convert CGA tensor to point in R3.
+    
+    Returns:
+        Point coordinates.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = torch.tensor([5,12,14,15])
     od = tensor[...,blade_indices]
@@ -133,9 +147,7 @@ def cga2point(ga,tensor):
 # 23,-20,18
 
 def line2cga(ga, moment, direction):
-    """
-    Line w/ direction n in R3, orthogonal shift s in R3
-    """    
+    """Convert line with direction n in R3 and moment to CGA representation."""
     scaling = torch.tensor([1,-1,1]).to(moment)
     inputs = torch.cat([moment*scaling,-direction],dim=-1)
     blade_indices = torch.tensor([23,20,18,21,24,25])
@@ -143,6 +155,11 @@ def line2cga(ga, moment, direction):
     return tensor
 
 def cga2line_(ga,tensor):
+    """Convert CGA tensor to line representation (internal version).
+    
+    Returns:
+        Tuple of (moment, direction).
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = torch.tensor([23,20,18,21,24,25])
     od = tensor[...,blade_indices]
@@ -151,6 +168,11 @@ def cga2line_(ga,tensor):
     return moment*scaling, direction
 
 def cga2line(ga,tensor):
+    """Convert CGA tensor to line representation.
+    
+    Returns:
+        Tuple of (points, direction).
+    """
     if not isinstance(tensor, MultiVector): 
         lines = ga(tensor)
     else:
@@ -168,6 +190,16 @@ def cga2line(ga,tensor):
 # 
 
 def dual_plane2pga(ga, distance, normal):
+    """Convert plane to PGA using dual encoding.
+    
+    Args:
+        ga: GeometricAlgebra instance.
+        distance: Distance parameter.
+        normal: Normal vector.
+    
+    Returns:
+        PGA tensor.
+    """
     n = ga(ga.from_tensor(normal,torch.tensor([2,3,4])))
     delta = ga(ga.from_tensor(distance,torch.tensor([0])))
     tensor = n - delta*ga(ga.e0)
@@ -175,20 +207,28 @@ def dual_plane2pga(ga, distance, normal):
     return tensor.tensor
 
 def dual_pga2plane(ga,tensor):
+    """Convert PGA tensor to plane using dual encoding.
+    
+    Returns:
+        Tuple of (distance, normal).
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     normal, distance = tensor[...,2:5],-tensor[...,1]
     return distance, normal
 
 def dual_line2pga(ga, orthogonal_shift, direction):
-    """
-    Line w/ direction n in R3, orthogonal shift s in R3
-    """
+    """Convert line to PGA using dual encoding."""
     n1n2 = ga(ga.from_tensor(direction,torch.tensor([2,3,4])))
     distance = ga(ga.from_tensor(orthogonal_shift,torch.tensor([2,3,4])))
     tensor = n1n2 - ga(ga.e0)*distance*n1n2
     return tensor.tensor
 
 def dual_pga2line(ga,tensor):
+    """Convert PGA tensor to line using dual encoding.
+    
+    Returns:
+        Tuple of (orthogonal_shift, direction).
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     n1n2 = ga(ga.from_tensor(tensor[...,2:5],torch.tensor([2,3,4])))
     tensor = ga(tensor) - n1n2  
@@ -200,14 +240,17 @@ def dual_pga2line(ga,tensor):
     return orthogonal_shift, direction
 
 def dual_point2pga(ga, point):
-    """
-    Point p in R3
-    """    
+    """Convert point p in R3 to PGA using dual encoding."""
     x = ga(ga.from_tensor(point,torch.tensor([2,3,4])))
     tensor = (ga(ga.e_)-ga(ga.e0)*x)*ga(ga.e123)
     return tensor.tensor
 
 def dual_pga2point(ga,tensor):
+    """Convert PGA tensor to point using dual encoding.
+    
+    Returns:
+        Point coordinates.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     point = ga(tensor).dual()
     tensor = point.tensor[...,2:5]
@@ -220,8 +263,15 @@ def dual_pga2point(ga,tensor):
 
 # Operations
 def reflection2pga(ga, distance, normal_dir):
-    """
-    Reflection through plane w/ normal n in R3, origin shift d in R
+    """Convert reflection through plane to PGA representation.
+    
+    Args:
+        ga: GeometricAlgebra instance.
+        distance: Origin shift d in R.
+        normal_dir: Normal n in R3.
+    
+    Returns:
+        PGA tensor.
     """
     inputs = torch.cat([distance,normal_dir],dim=-1)
     blade_indices = (ga.blade_degrees==1).long()
@@ -230,6 +280,11 @@ def reflection2pga(ga, distance, normal_dir):
     return tensor
 
 def pga2reflection(ga,tensor):
+    """Convert PGA tensor to reflection representation.
+    
+    Returns:
+        Tuple of (distance, normal_dir).
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = (ga.blade_degrees==1).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -239,9 +294,7 @@ def pga2reflection(ga,tensor):
 
 # translation 
 def translation2pga(ga, translation):
-    """
-    Translation t in R3
-    """    
+    """Convert translation t in R3 to PGA representation."""
     _one = torch.ones([*translation.shape[:-1],1]).to(translation)
     inputs = torch.cat([_one,translation*0.5],dim=-1)
     blade_indices = (ga.blade_degrees==2).long() 
@@ -250,6 +303,11 @@ def translation2pga(ga, translation):
     return tensor
 
 def pga2translation(ga,tensor):
+    """Convert PGA tensor to translation vector.
+    
+    Returns:
+        Translation vector.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = (ga.blade_degrees==2).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -259,9 +317,7 @@ def pga2translation(ga,tensor):
 
 # rotation 
 def rotation2pga(ga, rotation):
-    """
-    Translation t in R3
-    """    
+    """Convert rotation to PGA representation."""
     
     inputs = rotation
     blade_indices = (ga.blade_degrees==2).long() 
@@ -270,6 +326,11 @@ def rotation2pga(ga, rotation):
     return tensor
 
 def pga2rotation(ga,tensor):
+    """Convert PGA tensor to rotation representation.
+    
+    Returns:
+        Rotation parameters.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = (ga.blade_degrees==2).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -278,9 +339,7 @@ def pga2rotation(ga,tensor):
 
 # Point reflection
 def pointreflection2pga(ga, point):
-    """
-    Point reflection through p in R3
-    """    
+    """Convert point reflection through p in R3 to PGA representation."""
     inputs = torch.cat([point,torch.ones([*point.shape[:-1],1]).to(point)],dim=-1)
     blade_indices = (ga.blade_degrees==3).long()
     blade_indices = torch.where(blade_indices)[0]
@@ -288,6 +347,11 @@ def pointreflection2pga(ga, point):
     return tensor
 
 def pga2pointreflection(ga,tensor):
+    """Convert PGA tensor to point reflection.
+    
+    Returns:
+        Point coordinates.
+    """
     if isinstance(tensor, MultiVector): tensor = tensor.tensor
     blade_indices = (ga.blade_degrees==3).long()
     blade_indices = torch.where(blade_indices)[0]

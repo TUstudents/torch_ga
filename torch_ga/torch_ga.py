@@ -1,5 +1,4 @@
-"""Provides classes and operations for performing geometric algebra
-with Pytorch.
+"""Provides classes and operations for performing geometric algebra with PyTorch.
 
 The `GeometricAlgebra` class is used to construct the algebra given a metric.
 It exposes methods for operating on `torch.Tensor` instances where their last
@@ -26,6 +25,15 @@ from .blades import get_sub_algebra, get_sub_algebra_tree, get_merged_tree, get_
 # from opt_einsum.contract import contract
 
 def int_comb(n,k):
+    """Compute binomial coefficient n choose k.
+    
+    Args:
+        n: Total number of items.
+        k: Number of items to choose.
+    
+    Returns:
+        Binomial coefficient "n choose k".
+    """
     ntok = 1
     ktok = 1
     for t in range(1, min(k, n - k) + 1):
@@ -37,6 +45,7 @@ def int_comb(n,k):
 from icecream import ic
 class GeometricAlgebra:
     """Class used for performing geometric algebra operations on `torch.Tensor` instances.
+    
     Exposes methods for operating on `torch.Tensor` instances where their last
     axis is interpreted as blades of the algebra.
     Holds the metric and other quantities derived from it.
@@ -44,11 +53,14 @@ class GeometricAlgebra:
 
     def __init__(self, metric: List[float], compute_complex_flag=False, dtype=torch.float32):
         """Creates a GeometricAlgebra object given a metric.
+        
         The algebra will have as many basis vectors as there are
         elements in the metric.
 
         Args:
-            metric: Metric as a list. Specifies what basis vectors square to
+            metric: Metric as a list. Specifies what basis vectors square to.
+            compute_complex_flag: If True, compute complex index structures.
+            dtype: PyTorch data type for tensor operations.
         """
         self.dtype = dtype
         # self._metric = torch.tensor(metric, dtype=torch.float32)
@@ -133,16 +145,18 @@ class GeometricAlgebra:
     #     return CliffordAlgebra(self.metric)
 
     def to_cl(self):
-        from torch_ga.clifford import CliffordAlgebra
-        """Creates a `CliffordAlgebra` from the Clifford Algebra
+        """Convert to CliffordAlgebra representation.
 
         Returns:
-            `CliffordAlgebra` 
+            CliffordAlgebra instance with same metric.
         """
+        from torch_ga.clifford import CliffordAlgebra
         return CliffordAlgebra(self.metric)
 
     def print(self, *args, **kwargs):
-        """Same as the default `print` function but formats `torch.Tensor`
+        """Print function that formats geometric algebra `torch.Tensor` instances.
+        
+        Same as the default `print` function but formats `torch.Tensor`
         instances that have as many elements on their last axis
         as the algebra has blades using `mv_repr()`.
         """
@@ -153,77 +167,87 @@ class GeometricAlgebra:
         print(*new_args, **kwargs)
 
     def split(self, a:torch.Tensor) -> list[torch.Tensor]:
+        """Split tensor by blade grades.
+        
+        Args:
+            a: Tensor to split by grades.
+        
+        Returns:
+            List of tensors split by blade numbers.
+        """
         # return a.tensor.split( [int_comb(3,_) for _ in range(self.dim+1)],-1)
         return a.split( self.blades_numbers,-1)
 
     @property
     def blades_numbers(self) -> list[int]:
-        """ G(n=(p+q+r), return n
-        """
+        """Return list of blade counts for each grade in G(p,q,r)."""
         return [int_comb(self.dim,_) for _ in range(self.dim+1)]
 
 
     @property
     def dim(self) -> int:
-        """ G(n=(p+q+r), return n
-        """
+        """Return dimensionality n=p+q+r of the algebra G(p,q,r)."""
         return self._dim
 
     @property
     def p(self) -> int:
-        """ G(p,q,r)
-        """
+        """Return p parameter (positive signature) of G(p,q,r)."""
         return self._p
     @property
     def q(self) -> int:
-        """ G(p,q,r)
-        """
+        """Return q parameter (negative signature) of G(p,q,r)."""
         return self._q
     @property
     def r(self) -> int:
-        """ G(p,q,r)
-        """
+        """Return degenerate signature parameter of algebra G(p,q,r)."""
         return self._r
     @property
     def dim(self) -> int:
-        """ G(p,q,r|n=p+q+r)
-        """
+        """Return dimensionality n=p+q+r of the algebra G(p,q,r)."""
         return self._dim
     @property
     def num_bases(self) -> int:
-        """ number of basis degree=1
-        """
+        """Return number of basis vectors (degree=1)."""
         return self._num_bases
     @property
     def num_blades(self) -> int:
-        """ number of basis degree=1
-        """
+        """Return total number of blades in the algebra."""
         return self._num_blades
     
     @property
-    def real_idx(self)->list: return self._real_idx
+    def real_idx(self)->list:
+        """Return indices of real subalgebra components.""" 
+        return self._real_idx
+    
     @property
-    def complex_idx(self)->list: return self._complex_idx
+    def complex_idx(self)->list:
+        """Return indices of complex subalgebra components."""
+        return self._complex_idx
+    
     @property
-    def complex_list(self)->list: return self._complex_list
+    def complex_list(self)->list:
+        """Return list of complex index pairs."""
+        return self._complex_list
+    
     @property
-    def complex_tree(self)->list: return self._complex_tree
+    def complex_tree(self)->list:
+        """Return tree structure of complex index pairs."""
+        return self._complex_tree
 
     @property
     def metric(self) -> torch.Tensor:
-        """Metric list which contains the number that each
-        basis vector in the algebra squares to
-        (ie. the diagonal of the metric tensor).
+        """Metric list which contains the number that each basis vector squares to.
+        
+        The diagonal of the metric tensor.
         """
         return self._metric
 
     @property
     def cayley(self) -> torch.Tensor:
-        """`MxMxM` tensor where `M` is the number of basis
-        blades in the algebra. Used for calculating the
-        geometric product:
-
-        `a_i, b_j, cayley_ijk -> c_k`
+        """Return the Cayley tensor for geometric product calculation.
+        
+        Tensor where M is the number of basis blades in the algebra.
+        Used for calculating the geometric product: a_i, b_j, cayley_ijk -> c_k.
         """
         return self._cayley
 
@@ -240,15 +264,15 @@ class GeometricAlgebra:
     @property
     def blades(self) -> List[str]:
         """List of all blade names.
-
+        
         Blades are all possible independent combinations of
         basis vectors. Basis vectors are named starting
-        from `"0"` and counting up. The scalar blade is the
-        empty string `""`.
+        from "0" and counting up. The scalar blade is the
+        empty string "".
 
-        Example
-        - Bases: `["0", "1", "2"]`
-        - Blades: `["", "0", "1", "2", "01", "02", "12", "012"]`
+        Example:
+            Bases: ["0", "1", "2"]
+            Blades: ["", "0", "1", "2", "01", "02", "12", "012"]
         """
         return self._blades
 
@@ -259,12 +283,12 @@ class GeometricAlgebra:
 
     @property
     def I(self) -> torch.Tensor:
-        """List of all blade tensors in the algebra."""
+        """Return the pseudoscalar of the algebra."""
         return self._I
 
     @property
     def Imv(self) -> MultiVector:
-        """List of all blade tensors in the algebra."""
+        """Return the pseudoscalar as MultiVector."""
         return self._Imv
 
     @property
@@ -292,7 +316,7 @@ class GeometricAlgebra:
         return self._even_grades
     @property
     def odd_grades(self) -> torch.Tensor:
-        """List of even-degree blade in the algebra."""
+        """Return boolean mask for odd-degree blades in the algebra."""
         return self._odd_grades
     
     @property
@@ -330,16 +354,18 @@ class GeometricAlgebra:
         return torch.range(self.num_blades)[torch.where(self.blade_degrees == degree)[..., 0]]
 
     def is_pure(self, tensor: torch.Tensor, blade_indices: torch.Tensor) -> bool:
-        """Returns whether the given tensor is purely of the given blades
+        """Check if a tensor contains only the specified blades.
+
+        Returns whether the given tensor is purely of the given blades
         and has no non-zero values for blades not in the given blades.
 
         Args:
-            tensor: tensor to check purity for
-            blade_indices: blade indices to check purity for
+            tensor: tensor to check purity for.
+            blade_indices: blade indices to check purity for.
 
         Returns:
             Whether the tensor is purely of the given blades
-            and has no non-zero values for blades not in the given blades
+            and has no non-zero values for blades not in the given blades.
         """
         # tensor = torch.tensor(tensor, dtype=torch.float32)
         if False: tensor = tensor.to(dtype=torch.float32)
@@ -362,16 +388,18 @@ class GeometricAlgebra:
         return (tensor[inverted_blade_indices]==0).sum(dim=-1)
 
     def is_pure_kind(self, tensor: torch.Tensor, kind: BladeKind) -> bool:
-        """Returns whether the given tensor is purely of a given kind
+        """Check if a tensor contains only blades of a specific kind.
+
+        Returns whether the given tensor is purely of a given kind
         and has no non-zero values for blades not of the kind.
 
         Args:
-            tensor: tensor to check purity for
-            kind: kind of blade to check purity for
+            tensor: tensor to check purity for.
+            kind: kind of blade to check purity for.
 
         Returns:
             Whether the tensor is purely of a given kind
-            and has no non-zero values for blades not of the kind
+            and has no non-zero values for blades not of the kind.
         """
         # tensor = torch.tensor(tensor, dtype=torch.float32)
         if False: tensor = tensor.to(dtype=torch.float32)
@@ -498,18 +526,19 @@ class GeometricAlgebra:
             
 
     def from_tensor(self, tensor: torch.Tensor, blade_indices: torch.Tensor) -> torch.Tensor:
-        """Creates a geometric algebra torch.Tensor from a torch.Tensor and blade
-        indices. The blade indices have to align with the last axis of the
+        """Create a geometric algebra tensor from a tensor and blade indices.
+
+        The blade indices have to align with the last axis of the
         tensor.
 
         Args:
-            tensor: torch.Tensor to take as values for the geometric algebra tensor
+            tensor: torch.Tensor to take as values for the geometric algebra tensor.
             blade_indices: Blade indices corresponding to the tensor. Can
-            be obtained from blade names eg. using get_kind_blade_indices()
-            or as indices from the blades list property.
+                be obtained from blade names eg. using get_kind_blade_indices()
+                or as indices from the blades list property.
 
         Returns:
-            Geometric algebra torch.Tensor from tensor and blade indices
+            Geometric algebra torch.Tensor from tensor and blade indices.
         """
         # blade_indices = torch.tensor(blade_indices, dtype=torch.int64).to(dtype=torch.int64)
         # tensor = torch.tensor(tensor, dtype=torch.float32)
@@ -588,16 +617,17 @@ class GeometricAlgebra:
        
 
     def from_tensor_with_kind(self, tensor: torch.Tensor, kind: BladeKind) -> torch.Tensor:
-        """Creates a geometric algebra torch.Tensor from a torch.Tensor and a kind.
+        """Create a geometric algebra tensor from a tensor and kind.
+
         The kind's blade indices have to align with the last axis of the
         tensor.
 
         Args:
-            tensor: torch.Tensor to take as values for the geometric algebra tensor
-            kind: Kind corresponding to the tensor
+            tensor: torch.Tensor to take as values for the geometric algebra tensor.
+            kind: Kind corresponding to the tensor.
 
         Returns:
-            Geometric algebra torch.Tensor from tensor and kind
+            Geometric algebra torch.Tensor from tensor and kind.
         """
         # Put last axis on first axis so scatter_nd becomes easier.
         # Later undo the transposition again.
@@ -623,14 +653,13 @@ class GeometricAlgebra:
         return self.from_tensor_with_kind(torch.tensor([scalar]).unsqueeze(-1), BladeKind.SCALAR).squeeze(0)
 
     def e(self, *blades: List[str]) -> torch.Tensor:
-        """Returns a geometric algebra torch.Tensor with the given blades set
-        to 1.
+        """Return a geometric algebra tensor with the given blades set to 1.
 
         Args:
-            blades: list of blade names, can be unnormalized
+            blades: list of blade names, can be unnormalized.
 
         Returns:
-            torch.Tensor with blades set to 1
+            torch.Tensor with blades set to 1.
         """
         blade_signs, blade_indices = get_blade_indices_from_names(
             blades, self.blades)
@@ -667,9 +696,13 @@ class GeometricAlgebra:
         # a, b -> b
         # return MultiVector(x.sum(dim=-2),self)
         return x.sum(dim=-2)
+    
     def emv(self, *blades: List[str]) -> torch.Tensor:
-        return MultiVector(self.e(*blades),self)      
+        """Create a MultiVector from blade names."""
+        return MultiVector(self.e(*blades),self)
+    
     def bases(self,primal=True, names=False):
+        """Return list of all basis multivectors (primal or dual)."""
         ga = self
         if primal:
             _ret_bases= [ga.emv(_) for _ in ga._blades]
@@ -685,9 +718,13 @@ class GeometricAlgebra:
                 return  _ret_bases, _ret_names
             else:
                 return  _ret_bases        
+    
     def bases_primal(self,names=False):
+        """Return primal basis multivectors."""
         return self.bases(primal=True,names=names)
+    
     def bases_dual(self,names=False):
+        """Return dual basis multivectors."""
         return self.bases(primal=False,names=names)
 
     # def grade(self,tensor):
@@ -699,6 +736,7 @@ class GeometricAlgebra:
     #     return _grade
     
     def grade(self,tensor,_grade=None):
+        """Return grade of tensor, or project tensor to specified grade."""
         ga = self
         if _grade is None: # return the degree of the max blade
             _grade = torch.einsum("...i,i->...i",tensor,ga.blade_degrees).max(-1)[0]
@@ -737,55 +775,58 @@ class GeometricAlgebra:
         return self.dual_blade_signs * tensor[...,self.dual_blade_indices]
 
     def grade_automorphism(self, tensor: torch.Tensor) -> torch.Tensor:
-        """Returns the geometric algebra tensor with odd grades negated.
+        """Return the geometric algebra tensor with odd grades negated.
+
         See https://en.wikipedia.org/wiki/Paravector#Grade_automorphism.
 
         Args:
-            tensor: Geometric algebra tensor to return grade automorphism for
+            tensor: Geometric algebra tensor to return grade automorphism for.
 
         Returns:
-            Geometric algebra tensor with odd grades negated
+            Geometric algebra tensor with odd grades negated.
         """
         if False: tensor = tensor.to(dtype=torch.float32)
         return mv_grade_automorphism(tensor, self.blade_degrees)
 
     def reversion(self, tensor: torch.Tensor) -> torch.Tensor:
-        """Returns the grade-reversed geometric algebra tensor.
+        """Return the grade-reversed geometric algebra tensor.
+
         See https://en.wikipedia.org/wiki/Paravector#Reversion_conjugation.
 
         Args:
-            tensor: Geometric algebra tensor to return grade-reversion for
+            tensor: Geometric algebra tensor to return grade-reversion for.
 
         Returns:
-            Grade-reversed geometric algebra tensor
+            Grade-reversed geometric algebra tensor.
         """
         if False: tensor = tensor.to(dtype=torch.float32)
 
         return mv_reversion(tensor, self.blade_degrees)
 
     def conjugation(self, tensor: torch.Tensor) -> torch.Tensor:
-        """Combines reversion and grade automorphism.
+        """Combine reversion and grade automorphism.
+
         See https://en.wikipedia.org/wiki/Paravector#Clifford_conjugation.
 
         Args:
-            tensor: Geometric algebra tensor to return conjugate for
+            tensor: Geometric algebra tensor to return conjugate for.
 
         Returns:
-            Geometric algebra tensor after `reversion()` and `grade_automorphism()`
+            Geometric algebra tensor after reversion and grade_automorphism.
         """
         if False: tensor = tensor.to(dtype=torch.float32)
         return self.grade_automorphism(self.reversion(tensor))
 
     def simple_inverse(self, a: torch.Tensor) -> torch.Tensor:
-        """Returns the inverted geometric algebra tensor
-        `X^-1` such that `X * X^-1 = 1`. Only works for elements that
-        square to scalars. Faster than the general inverse.
+        """Return the inverse X^-1 such that X*X^-1=1 (elements squaring to scalars).
+
+        Only works for elements that square to scalars. Faster than the general inverse.
 
         Args:
-            a: Geometric algebra tensor to return inverse for
+            a: Geometric algebra tensor to return inverse for.
 
         Returns:
-            inverted geometric algebra tensor
+            Inverted geometric algebra tensor.
         """
         if False: a = a.to(dtype=torch.float32)
 
@@ -802,17 +843,16 @@ class GeometricAlgebra:
         return rev_a / divisor[..., :1]
 
     def reg_prod(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Returns the regressive product of two geometric
-        algebra tensors.
+        """Return the regressive product of two geometric algebra tensors.
 
         Args:
             a: Geometric algebra tensor on the left hand side of
-            the regressive product
+                the regressive product.
             b: Geometric algebra tensor on the right hand side of
-            the regressive product
+                the regressive product.
 
         Returns:
-            regressive product of a and b
+            Regressive product of a and b.
         """
         if not isinstance(a,torch.Tensor): a = torch.tensor(a, dtype=torch.float32)
         if not isinstance(b,torch.Tensor): b = torch.tensor(b, dtype=torch.float32)
@@ -820,17 +860,16 @@ class GeometricAlgebra:
         return self.dual(self.ext_prod(self.dual(a), self.dual(b)))
     
     def left_contraction(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Returns the left constraction of two geometric
-        algebra tensors.
+        """Return the left contraction of two geometric algebra tensors.
 
         Args:
             a: Geometric algebra tensor on the left hand side of
-            the regressive product
+                the left contraction.
             b: Geometric algebra tensor on the right hand side of
-            the regressive product
+                the left contraction.
 
         Returns:
-            left contraction of a and b
+            Left contraction of a and b.
         """
         if not isinstance(a,torch.Tensor): a = torch.tensor(a, dtype=torch.float32)
         if not isinstance(b,torch.Tensor): b = torch.tensor(b, dtype=torch.float32)
@@ -838,17 +877,16 @@ class GeometricAlgebra:
         return self.dual(self.ext_prod(a, self.dual(b)))
     
     def right_contraction(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Returns the right constraction of two geometric
-        algebra tensors.
+        """Return the right contraction of two geometric algebra tensors.
 
         Args:
             a: Geometric algebra tensor on the left hand side of
-            the regressive product
+                the right contraction.
             b: Geometric algebra tensor on the right hand side of
-            the regressive product
+                the right contraction.
 
         Returns:
-            right contraction of a and b
+            Right contraction of a and b.
         """
         if not isinstance(a,torch.Tensor): a = torch.tensor(a, dtype=torch.float32)
         if not isinstance(b,torch.Tensor): b = torch.tensor(b, dtype=torch.float32)
@@ -856,17 +894,14 @@ class GeometricAlgebra:
         return self.dual(self.ext_prod(self.dual(a), b))
 
     def projection(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Returns the projection of A on B, two geometric
-        algebra tensors.
+        """Return the projection of A onto B.
 
         Args:
-            a: Geometric algebra tensor on the left hand side of
-            the regressive product
-            b: Geometric algebra tensor on the right hand side of
-            the regressive product
+            a: Geometric algebra tensor to project.
+            b: Geometric algebra tensor to project onto.
 
         Returns:
-            projection of a and b: P_B(A)
+            Projection of a onto b.
         """
         if not isinstance(a,(torch.Tensor,MultiVector)): a = torch.tensor(a, dtype=torch.float32)
         if not isinstance(b,(torch.Tensor,MultiVector)): b = torch.tensor(b, dtype=torch.float32)
@@ -875,17 +910,14 @@ class GeometricAlgebra:
         return self.left_contraction(self.left_contraction(a,b),self.inverse(b))
 
     def orthogonal_projection(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Returns the orthogonal projection of A on B, two geometric
-        algebra tensors.
+        """Return the orthogonal projection of A with respect to B.
 
         Args:
-            a: Geometric algebra tensor on the left hand side of
-            the regressive product
-            b: Geometric algebra tensor on the right hand side of
-            the regressive product
+            a: Geometric algebra tensor to project.
+            b: Geometric algebra tensor defining the projection plane.
 
         Returns:
-            orthogonal projection of a and b: P_B(A)
+            Orthogonal projection of a with respect to b.
         """
         if not isinstance(a,torch.Tensor): a = torch.tensor(a, dtype=torch.float32)
         if not isinstance(b,torch.Tensor): b = torch.tensor(b, dtype=torch.float32)
@@ -895,17 +927,16 @@ class GeometricAlgebra:
 
 
     def ext_prod(self, a: torch.Tensor, b: torch.Tensor, blades=None) -> torch.Tensor:
-        """Returns the exterior product of two geometric
-        algebra tensors.
+        """Return the exterior product of two geometric algebra tensors.
 
         Args:
             a: Geometric algebra tensor on the left hand side of
-            the exterior product
+                the exterior product.
             b: Geometric algebra tensor on the right hand side of
-            the exterior product
+                the exterior product.
 
         Returns:
-            exterior product of a and b
+            Exterior product of a and b.
         """
         if False: a = a.to(dtype=torch.float32)
         if False: b = b.to(dtype=torch.float32)        
@@ -920,17 +951,16 @@ class GeometricAlgebra:
         return mv_multiply(a, b, self._cayley_outer)
 
     def geom_prod(self, a: torch.Tensor, b: torch.Tensor, blades=None) -> torch.Tensor:
-        """Returns the geometric product of two geometric
-        algebra tensors.
+        """Return the geometric product of two geometric algebra tensors.
 
         Args:
             a: Geometric algebra tensor on the left hand side of
-            the geometric product
+                the geometric product.
             b: Geometric algebra tensor on the right hand side of
-            the geometric product
+                the geometric product.
 
         Returns:
-            geometric product of a and b
+            Geometric product of a and b.
         """
         # a = torch.tensor(a, dtype=torch.float32)
         # b = torch.tensor(b, dtype=torch.float32)
@@ -971,16 +1001,20 @@ class GeometricAlgebra:
     # # end
 
     def pga_meet(self,A,B):
+        """Compute meet operation for PGA elements."""
         return pga_meet(A,B)
 
     def pga_join(self,A,B):
+        """Compute join operation for PGA elements."""
         return pga_join(self,None,A,B)
     
     def meet(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+        """Compute the meet operation via exterior product."""
         # it is actually the wedge
         return self.ext_prod(a,b)
 
     def join(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+        """Compute the regressive product via dual of exterior product of duals."""
         # A Guided Tour to the Plane-Based Geometric Algebra PGA
         # assert(self.r==0),"this join does not work well, please use pga_join() function"
         if False: a = a.to(dtype=torch.float32)
@@ -994,17 +1028,14 @@ class GeometricAlgebra:
         return c
     
     def sandwitch_prod(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Returns the geometric sandwitch product of two geometric
-        algebra tensors.
+        """Return the sandwich product bab~ of two geometric algebra tensors.
 
         Args:
-            a: Geometric algebra tensor on the left hand side of
-            the geometric product
-            b: Geometric algebra tensor on the right hand side of
-            the geometric product
+            a: Inner geometric algebra tensor.
+            b: Outer geometric algebra tensor (versors).
 
         Returns:
-            geometric product of b a b~
+            Sandwich product bab~.
         """
         # a = torch.tensor(a, dtype=torch.float32)
         # b = torch.tensor(b, dtype=torch.float32)
@@ -1021,17 +1052,14 @@ class GeometricAlgebra:
 
     
     def element_wise_prod(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        """Returns the element-wise product of two geometric
-        algebra tensors.
+        """Return the element-wise product of two geometric algebra tensors.
 
         Args:
-            a: Geometric algebra tensor on the left hand side of
-            the geometric product
-            b: Geometric algebra tensor on the right hand side of
-            the geometric product
+            a: Geometric algebra tensor on the left.
+            b: Geometric algebra tensor on the right.
 
         Returns:
-            geometric product of a and b
+            Element-wise product of a and b.
         """
         # a = torch.tensor(a, dtype=torch.float32)
         # b = torch.tensor(b, dtype=torch.float32)
@@ -1045,17 +1073,14 @@ class GeometricAlgebra:
 
 
     def inner_prod(self, a: torch.Tensor, b: torch.Tensor, blades= None) -> torch.Tensor:
-        """Returns the inner product of two geometric
-        algebra tensors.
+        """Return the inner product of two geometric algebra tensors.
 
         Args:
-            a: Geometric algebra tensor on the left hand side of
-            the inner product
-            b: Geometric algebra tensor on the right hand side of
-            the inner product
+            a: Geometric algebra tensor on the left.
+            b: Geometric algebra tensor on the right.
 
         Returns:
-            inner product of a and b
+            Inner product of a and b.
         """
         if False: a = a.to(dtype=torch.float32)
         if False: b = b.to(dtype=torch.float32)
@@ -1072,22 +1097,21 @@ class GeometricAlgebra:
     def geom_conv1d(self, a: torch.Tensor, k: torch.Tensor,
                     stride: int, padding: str,
                     dilations: Union[int, None] = None) -> torch.Tensor:
-        """Returns the 1D convolution of a sequence with a geometric algebra
-        tensor kernel. The convolution is performed using the geometric
-        product.
+        """Return the 1D convolution of a sequence with a geometric algebra kernel.
+
+        The convolution is performed using the geometric product.
 
         Args:
             a: Input geometric algebra tensor of shape
-                [..., Length, ChannelsIn, Blades]
+                [..., Length, ChannelsIn, Blades].
             k: Geometric algebra tensor for the convolution kernel of shape
-                [KernelSize, ChannelsIn, ChannelsOut, Blades]
-            stride: Stride to use for the convolution
-            padding: "SAME" (zero-pad input length so output
-                length == input length / stride) or "VALID" (no padding)
+                [KernelSize, ChannelsIn, ChannelsOut, Blades].
+            stride: Stride to use for the convolution.
+            padding: 'SAME' or 'VALID' padding mode.
+
         Returns:
-            Geometric algbra tensor of shape
-            [..., OutputLength, ChannelsOut, Blades]
-            representing `a` convolved with `k`
+            Geometric algebra tensor of shape
+            [..., OutputLength, ChannelsOut, Blades].
         """
         if False: a = a.to(dtype=torch.float32)
         if False: k = k.to(dtype=torch.float32)
@@ -1096,14 +1120,13 @@ class GeometricAlgebra:
         return f_mv_conv1d(a, k, self._cayley, stride=stride, padding=padding)
 
     def mv_repr(self, a: torch.Tensor, prefix="") -> str:
-        """Returns a string representation for the given
-        geometric algebra tensor.
+        """Return a string representation for a geometric algebra tensor.
 
         Args:
-            a: Geometric algebra tensor to return the representation for
+            a: Geometric algebra tensor to represent.
 
         Returns:
-            string representation for `a`
+            String representation for a.
         """
         if False: a = a.to(dtype=torch.float32)
 
@@ -1152,16 +1175,17 @@ class GeometricAlgebra:
         return result
 
     def exp(self, a: torch.Tensor, square_scalar_tolerance: Union[float, None] = 1e-4) -> torch.Tensor:
-        """Returns the exponential of the passed geometric algebra tensor.
+        """Return the exponential of a geometric algebra tensor.
+
         Only works for multivectors that square to scalars.
 
         Args:
-            a: Geometric algebra tensor to return exponential for
-            square_scalar_tolerance: Tolerance to use for the square scalar check
-                or None if the check should be skipped
+            a: Geometric algebra tensor to return exponential for.
+            square_scalar_tolerance: Tolerance for the square scalar check,
+                or None to skip the check.
 
         Returns:
-            `exp(a)`
+            Exponential of the input tensor.
         """
         # See https://www.euclideanspace.com/maths/algebra/clifford/algebra/functions/exponent/index.htm
         # for an explanation of how to exponentiate multivectors.
@@ -1195,15 +1219,16 @@ class GeometricAlgebra:
         return torch.where(scalar_self_sq == 0, self.from_scalar(1.0) + a, non_zero_result)
 
     def approx_log(self, a: torch.Tensor, order: int = 50) -> torch.Tensor:
-        """Returns an approximation of the natural logarithm using a centered
-        taylor series. Only converges for multivectors where `||mv - 1|| < 1`.
+        """Return an approximation of the natural logarithm using Taylor series.
+
+        Only converges for multivectors where ||mv - 1|| < 1.
 
         Args:
-            a: Geometric algebra tensor to return logarithm for
-            order: order of the approximation
+            a: Geometric algebra tensor to return logarithm for.
+            order: Order of the approximation.
 
         Returns:
-            Approximation of `log(a)`
+            Approximation of log(a).
         """
         if False: a = a.to(dtype=torch.float32)
 
@@ -1219,15 +1244,16 @@ class GeometricAlgebra:
         return -result
 
     def int_pow(self, a: torch.Tensor, n: int) -> torch.Tensor:
-        """Returns the geometric algebra tensor to the power of an integer
-        using repeated multiplication.
+        """Return the geometric algebra tensor raised to an integer power.
+
+        Uses repeated multiplication.
 
         Args:
-            a: Geometric algebra tensor to raise
-            n: integer power to raise the multivector to
+            a: Geometric algebra tensor to raise.
+            n: Integer power to raise the multivector to.
 
         Returns:
-            `a` to the power of `n`
+            Tensor a raised to the power of n.
         """
         if False: a = a.to(dtype=torch.float32)
 
@@ -1247,15 +1273,14 @@ class GeometricAlgebra:
         return result
 
     def keep_blades(self, a: torch.Tensor, blade_indices: List[int]) -> torch.Tensor:
-        """Takes a geometric algebra tensor and returns it with only the given
-        blade_indices as non-zeros.
+        """Return a tensor with only the specified blade indices as non-zeros.
 
         Args:
-            a: Geometric algebra tensor to copy
-            blade_indices: Indices for blades to keep
+            a: Geometric algebra tensor to copy.
+            blade_indices: Indices for blades to keep.
 
         Returns:
-            `a` with only `blade_indices` components as non-zeros
+            Tensor with only blade_indices components as non-zeros.
         """
         if False: a = a.to(dtype=torch.float32)
         blade_indices = blade_indices.to(dtype=torch.int64)
@@ -1275,15 +1300,14 @@ class GeometricAlgebra:
         # return self.from_tensor(blade_values, blade_indices)
 
     def keep_blades_with_name(self, a: torch.Tensor, blade_names: Union[List[str], str]) -> torch.Tensor:
-        """Takes a geometric algebra tensor and returns it with only the given
-        blades as non-zeros.
+        """Return a tensor with only the specified blades as non-zeros.
 
         Args:
-            a: Geometric algebra tensor to copy
-            blade_names: Blades to keep
+            a: Geometric algebra tensor to copy.
+            blade_names: Blades by name to keep.
 
         Returns:
-            `a` with only `blade_names` components as non-zeros
+            Tensor with only blade_names components as non-zeros.
         """
         if isinstance(blade_names, str):
             blade_names = [blade_names]
@@ -1298,16 +1322,14 @@ class GeometricAlgebra:
         return self.keep_blades(a, blade_indices)
 
     def select_blades(self, a: torch.Tensor, blade_indices: List[int]) -> torch.Tensor:
-        """Takes a geometric algebra tensor and returns a `torch.Tensor` with the
-        blades in blade_indices on the last axis.
-
+        """Return a tensor with specified blades extracted to the last axis.
 
         Args:
-            a: Geometric algebra tensor to copy
-            blade_indices: Indices for blades to select
+            a: Geometric algebra tensor to select from.
+            blade_indices: Indices for blades to select.
 
         Returns:
-            `torch.Tensor` based on `a` with `blade_indices` on last axis.
+            Tensor with blade_indices on last axis.
         """
         if False: a = a.to(dtype=torch.float32)        
         # blade_indices = torch.tensor(blade_indices, dtype=torch.int64).to(dtype=torch.int64)
@@ -1327,16 +1349,14 @@ class GeometricAlgebra:
         return result
 
     def select_blades_with_name(self, a: torch.Tensor, blade_names: Union[List[str], str]) -> torch.Tensor:
-        """Takes a geometric algebra tensor and returns a `torch.Tensor` with the
-        blades in blade_names on the last axis.
-
+        """Return a tensor with specified blades by name extracted to the last axis.
 
         Args:
-            a: Geometric algebra tensor to copy
-            blade_names: Blades to keep
+            a: Geometric algebra tensor to select from.
+            blade_names: Names of blades to select.
 
         Returns:
-            `torch.Tensor` based on `a` with `blade_names` on last axis.
+            Tensor with blade_names on last axis.
         """
         if False: a = a.to(dtype=torch.float32)
 
@@ -1357,17 +1377,16 @@ class GeometricAlgebra:
         return result
 
     def inverse(self, a: torch.Tensor, force_scalar=False) -> torch.Tensor:
-        """Returns the inverted geometric algebra tensor
-        `X^-1` such that `X * X^-1 = 1`.
+        """Return the multiplicative inverse X^-1 such that X*X^-1=1.
 
-        Using Shirokov's inverse algorithm that works in arbitrary dimensions,
+        Uses Shirokov's inverse algorithm that works in arbitrary dimensions,
         see https://arxiv.org/abs/2005.04015 Theorem 4.
 
         Args:
-            a: Geometric algebra tensor to return inverse for
+            a: Geometric algebra tensor to return inverse for.
 
         Returns:
-            inverted geometric algebra tensor
+            Inverted geometric algebra tensor.
         """
         # a = torch.tensor(a, dtype=torch.float32)
         if False: a = a.to(dtype=torch.float32)
@@ -1403,20 +1422,31 @@ class GeometricAlgebra:
         return u_minus_c / u[..., :1]
     
     def inv(self, a: torch.Tensor, **kargs) -> torch.Tensor:
+        """Alias for inverse method."""
         return self.inverse(a, **kargs)
     
     def prod(self,a,b):
+        """Compute the geometric product of a and b."""
         return self.geom_prod(a,b)
+    
     def ext(self,a,b):
+        """Alias for ext_prod (exterior/outer product)."""
         return self.ext_prod(a,b)
+    
     def inner(self,a,b):
+        """Alias for inner_prod (inner product)."""
         return self.inner_prod(a,b)
     
     def norm(self,a):
+        """Compute the norm of a multivector."""
         return abs(self.geom_prod(a, self.conjugation(a))[...,0])**0.5        
+    
     def inorm(self,a):
+        """Compute the ideal norm via dual."""
         return self.norm(self.dual(a))        
+    
     def normalized(self,a):
+        """Return unit-norm multivector."""
         if len(a.shape)==1:
             return a * (1 / self.norm(a))
         else:
@@ -1427,14 +1457,15 @@ class GeometricAlgebra:
         
 
     def __call__(self, a: torch.Tensor) -> MultiVector:
-        """Creates a `MultiVector` from a geometric algebra tensor.
+        """Create a MultiVector from a geometric algebra tensor.
+
         Mainly used as a wrapper for the algebra's functions for convenience.
 
         Args:
-            a: Geometric algebra tensor to return `MultiVector` for
+            a: Geometric algebra tensor to return MultiVector for.
 
         Returns:
-            `MultiVector` for `a`
+            MultiVector for the input tensor.
         """
         if False: a = a.to(dtype=torch.float32)
         return MultiVector(a, self)
@@ -1477,6 +1508,7 @@ class GeometricAlgebra:
 
 # PGA specific function for PGA(3d)
 def pga2tp(ga, tensor):
+    """Split PGA multivector into T (real) and P (complex) subalgebra components."""
     # tr = [0,2,3,4,8,9,10,14]
     # pr = [1,5,6,7,11,12,13,15]
     assert(tensor.shape[-1]==ga.num_blades), f"tensor dimension do not match {tensor.shape}, {ga.num_blades}"
@@ -1514,6 +1546,7 @@ def pga2tp(ga, tensor):
 #     return _Ta + ga.geom_prod(ga.e0, _Pa)
 
 def tp2pga(ga,Ta,Pa):
+    """Convert split T/P components back to full PGA multivector."""
     # tr = [0,2,3,4,8,9,10,14]
     # pr = [1,5,6,7,11,12,13,15]
     tr = ga.real_idx
@@ -1527,9 +1560,11 @@ def tp2pga(ga,Ta,Pa):
 
 # Special operation for the PGA
 def pga_meet(ga,A,B):
+    """Compute the meet of two PGA elements."""
     return ga.meet(A,B)
 
 def pga_join(ga, A, B, ga_d = None):
+    """Compute the join of two PGA elements."""
     Ta,Pa = pga2tp(ga, A)
     Tb,Pb = pga2tp(ga, B)
     # ic(Ta,Pa,Tb,Pb)
